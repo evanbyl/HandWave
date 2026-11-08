@@ -93,7 +93,7 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 | FR-701 | HandWave ships with a **built-in deck of about 100 original spectrum cards**. | Implemented |
 | FR-702 | Players can **add custom cards** by entering a left concept and a right concept. | Implemented |
 | FR-703 | Custom cards are mixed into the deck for future draws. | Implemented |
-| FR-704 | Custom cards can be deleted. | Implemented |
+| FR-704 | Custom cards can be deleted. | Implemented (per assumption in Q2; still Proposed) |
 
 ## 8. Game session
 
@@ -101,4 +101,4 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 |---|---|---|
 | FR-801 | There is **one ongoing game** on the phone. It continues across app closes and restarts. | Implemented |
 | FR-802 | A **New game** action clears all turns, guesses, and scores. It requires a confirmation step. | Implemented |
-| FR-803 | New game keeps the player list and custom cards. | Implemented |
+| FR-803 | New game keeps the player list and custom cards. | Implemented (per assumption in Q1; still Proposed) |

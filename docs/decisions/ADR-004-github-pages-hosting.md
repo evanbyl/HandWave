@@ -1,6 +1,6 @@
 # ADR-004: Host on GitHub Pages
 
-Status: Accepted
+Status: Accepted (hosting detail amended by ADR-009)
 Date: 2026-11-08
 
 ## Context
@@ -12,5 +12,4 @@ Deploy the built site to GitHub Pages through a GitHub Actions workflow on every
 ## Consequences
 - Free hosting, HTTPS included (required for PWAs).
 - Players just open a link.
-- The repo is **public**, since GitHub Pages doesn't serve private repos on a free plan (resolved open question Q6, 2026-11-08).
-- The site lives at `https://evanbyl.github.io/HandWave/`.
+- Note: on a free GitHub plan, Pages for a **private** repo isn't available; the repo may need to be public, or the account upgraded. Tracked in `docs/open-questions.md`.

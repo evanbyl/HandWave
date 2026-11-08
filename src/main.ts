@@ -65,7 +65,7 @@ function player(id: string) {
 
 function who(id: string): string {
   const p = player(id);
-  return p ? `${p.emoji} ${esc(p.name)}` : '❔ Unknown';
+  return p ? `${esc(p.emoji)} ${esc(p.name)}` : '❔ Unknown';
 }
 
 function deck(): Card[] {
@@ -117,11 +117,11 @@ function renderPicker(): string {
   const active = game.players.filter((p) => p.active);
   const away = game.players.filter((p) => !p.active);
   const grid = active
-    .map((p) => `<button class="person" data-act="pick" data-id="${p.id}"><span class="big">${p.emoji}</span>${esc(p.name)}</button>`)
+    .map((p) => `<button class="person" data-act="pick" data-id="${p.id}"><span class="big">${esc(p.emoji)}</span>${esc(p.name)}</button>`)
     .join('');
   const returning = away.length
     ? `<details class="returning"><summary>Played before? Rejoin</summary>
-       ${away.map((p) => `<button class="row" data-act="rejoin" data-id="${p.id}">${p.emoji} ${esc(p.name)}</button>`).join('')}
+       ${away.map((p) => `<button class="row" data-act="rejoin" data-id="${p.id}">${esc(p.emoji)} ${esc(p.name)}</button>`).join('')}
        </details>`
     : '';
   return layout(
@@ -212,10 +212,10 @@ function renderReveal(v: Extract<View, { name: 'reveal' }>): string {
     .map((g) => ({ ...g, pts: pointsFor(g.position, t.target) }))
     .sort((a, b) => b.pts - a.pts);
   const mine = guesses.find((g) => g.playerId === me);
-  const others = guesses.filter((g) => g.playerId !== me).map((g) => ({ position: g.position, label: player(g.playerId)?.emoji ?? '❔' }));
+  const others = guesses.filter((g) => g.playerId !== me).map((g) => ({ position: g.position, label: esc(player(g.playerId)?.emoji ?? '❔') }));
   const isCreator = t.creatorId === me;
   const banner = mine
-    ? `<p class="score s${mine.pts}">${v.justAnswered ? 'You scored' : 'You scored'} <strong>${mine.pts}</strong> / 4</p>`
+    ? `<p class="score s${mine.pts}">You scored <strong>${mine.pts}</strong> / 4</p>`
     : isCreator
       ? `<p class="score">Your clue scores <strong>${fmt(clueScore(game, t))}</strong> / 4 on average</p>`
       : '';
@@ -257,11 +257,13 @@ function renderTurns(v: Extract<View, { name: 'turns' }>): string {
 }
 
 function renderBoard(): string {
-  const rows = leaderboard(game)
-    .map((r, i) => {
+  const ranked = leaderboard(game);
+  const rows = ranked
+    .map((r) => {
+      const rank = r.combined === null ? '–' : ranked.findIndex((x) => x.combined === r.combined) + 1;
       const p = player(r.playerId)!;
       return `<div class="score-row ${p.active ? '' : 'away'}">
-        <span class="rank">${r.combined === null ? '–' : i + 1}</span>
+        <span class="rank">${rank}</span>
         <span class="name">${who(r.playerId)}${p.active ? '' : ' <small>(left)</small>'}
           <small>Guesses ${fmt(r.guessAverage)} (${r.guessCount}) · Clues ${fmt(r.clueAverage)} (${r.clueCount})</small></span>
         <strong>${fmt(r.combined)}</strong>

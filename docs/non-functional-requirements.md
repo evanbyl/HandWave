@@ -53,3 +53,4 @@ Quality bars every feature must meet. IDs are stable; status values match the fu
 | NFR-602 | Scoring logic is pure, separate from the UI, and covered by automated tests. | Implemented |
 | NFR-603 | Every push to `main` builds and deploys automatically. | Implemented |
 | NFR-604 | Built-in card content is original, not copied from any published game. | Implemented |
+| NFR-605 | **Code review before deploy:** every change reaches `main` (and therefore deployment) only through a pull request that has a written code review. The review checks the change against the spec (FR/NFR/ADR), correctness, security, data safety, and tests. It is posted on the pull request, and every must-fix finding is resolved before merging. Direct pushes to `main` are not allowed. | Accepted |
