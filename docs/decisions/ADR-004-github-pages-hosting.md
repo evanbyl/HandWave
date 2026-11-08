@@ -1,6 +1,6 @@
 # ADR-004: Host on GitHub Pages
 
-Status: Accepted
+Status: Accepted (hosting detail amended by ADR-009)
 Date: 2026-11-08
 
 ## Context

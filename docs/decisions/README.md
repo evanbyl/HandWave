@@ -12,6 +12,7 @@ Each record captures one decision: the context, what was decided, and the conseq
 | [ADR-006](ADR-006-scoring-model.md) | Scoring zones and averages | Accepted |
 | [ADR-007](ADR-007-identity-honor-system.md) | Name + emoji identity on the honor system | Accepted |
 | [ADR-008](ADR-008-no-ai-at-runtime.md) | Claude builds the game; no AI inside the game | Accepted |
+| [ADR-009](ADR-009-public-repository.md) | Public repository (amends ADR-004) | Accepted |
 
 Template for new records:
 
