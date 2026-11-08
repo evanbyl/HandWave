@@ -1,0 +1,25 @@
+# Architectural Decision Records
+
+Each record captures one decision: the context, what was decided, and the consequences. A decision isn't edited after it's accepted; it's **superseded** by a new record.
+
+| ID | Decision | Status |
+|---|---|---|
+| [ADR-001](ADR-001-spec-driven-development.md) | Spec-driven development with ID'd requirements | Accepted |
+| [ADR-002](ADR-002-mobile-web-app.md) | Mobile web app (PWA), not a native app | Accepted |
+| [ADR-003](ADR-003-typescript-vite.md) | TypeScript + Vite, no UI framework | Accepted |
+| [ADR-004](ADR-004-github-pages-hosting.md) | Host on GitHub Pages | Accepted |
+| [ADR-005](ADR-005-local-only-storage.md) | Store all data locally on the phone | Accepted |
+| [ADR-006](ADR-006-scoring-model.md) | Scoring zones and averages | Accepted |
+| [ADR-007](ADR-007-identity-honor-system.md) | Name + emoji identity on the honor system | Accepted |
+| [ADR-008](ADR-008-no-ai-at-runtime.md) | Claude builds the game; no AI inside the game | Accepted |
+
+Template for new records:
+
+```
+# ADR-NNN: Title
+Status: Proposed | Accepted | Superseded by ADR-NNN
+Date: YYYY-MM-DD
+## Context
+## Decision
+## Consequences
+```
