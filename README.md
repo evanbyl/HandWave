@@ -12,7 +12,7 @@ There's no turn order and no talking required. It works like a ring of people ca
 
 ## Project status
 
-Specification phase. The project uses spec-driven development: requirements and decisions come first, and code follows them.
+First playable version. The project uses spec-driven development: requirements and decisions come first, and code follows them.
 
 | Document | Contents |
 |---|---|
