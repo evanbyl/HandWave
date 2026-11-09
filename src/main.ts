@@ -108,7 +108,7 @@ function layout(hint: string, main: string, footer = ''): string {
     ? `<header><span class="who">${who(me)}</span>
        <button class="pass" data-act="pass">Pass the phone ↻</button></header>`
     : `<header><span class="brand">✋ HandWave</span></header>`;
-  return `${header}<p class="hint">${hint}</p><main>${main}</main>${footer ? `<footer>${footer}</footer>` : ''}`;
+  return `${header}${hint ? `<p class="hint">${hint}</p>` : ''}<main>${main}</main>${footer ? `<footer>${footer}</footer>` : ''}`;
 }
 
 // ---------- screens ----------
@@ -125,17 +125,17 @@ function renderPicker(): string {
        </details>`
     : '';
   return layout(
-    active.length ? 'Tap yourself. New here? Tap Join Game.' : 'Welcome! Tap Join Game to start playing.',
+    '',
     `<h1>Who are you?</h1><div class="people">${grid}</div>${returning}
      <section class="howto"><h2>How to play</h2>
      <p>One phone gets passed around. Whoever’s holding it can:</p>
      <ul>
-       <li><strong>Make a turn.</strong> You get a spectrum, like <em>Cold ↔ Hot</em>, and a secret target on it.
-       Write a clue that points to the target.</li>
-       <li><strong>Answer clues.</strong> Drag the needle to where you think someone else’s clue belongs,
+       <li><strong>Make a wave.</strong> You get a spectrum, like <em>Cold ↔ Hot</em>, and a secret target on it.
+       Write a clue that guides the guessers to the target.</li>
+       <li><strong>Guess a wave.</strong> Drag the needle to where you think someone else’s clue belongs,
        then see the target and how everyone scored.</li>
      </ul>
-     <p>Do as many as you like, in any order, then pass the phone. No talking, no turn order.
+     <p>Do as many as you like, in any order, then pass the phone. No talking, no taking turns.
      Join or leave anytime.</p></section>`,
     `<button class="primary" data-act="new-player">Join Game</button>`,
   );
@@ -158,30 +158,30 @@ function renderJoin(v: Extract<View, { name: 'join' }>): string {
 function renderHome(): string {
   const waiting = waitingFor(game, me!);
   const list = waiting.length
-    ? waiting.map((t) => turnRow(t, 'Answer ›')).join('')
-    : `<p class="empty">Nothing to answer right now. Create a turn for others!</p>`;
+    ? waiting.map((t) => turnRow(t, 'Guess ›')).join('')
+    : `<p class="empty">No waves to guess right now. Make one for the others!</p>`;
   const top = leaderboard(game).filter((r) => r.combined !== null).slice(0, 3);
   const board = top.length
     ? top.map((r, i) => `<div class="mini"><span>${i + 1}. ${who(r.playerId)}</span><strong>${fmt(r.combined)}</strong></div>`).join('')
     : `<p class="empty">No scores yet.</p>`;
   return layout(
-    waiting.length ? 'Tap a clue to guess it, or create your own turn.' : 'Create a turn: you’ll get a secret target to write a clue for.',
+    waiting.length ? 'Tap a clue to guess it, or make your own wave.' : 'Make a wave: you’ll get a secret target to write a clue for.',
     `<h2>Waiting for you (${waiting.length})</h2><div class="list">${list}</div>
      <h2>Top scores</h2><div class="list">${board}</div>
      <nav class="links">
-       <button data-act="turns">All turns</button>
+       <button data-act="turns">All waves</button>
        <button data-act="board">Scores</button>
        <button data-act="cards">Cards</button>
        <button data-act="menu">More</button>
      </nav>`,
-    `<button class="primary" data-act="create">＋ Create a turn</button>`,
+    `<button class="primary" data-act="create">＋ Make a wave</button>`,
   );
 }
 
 function renderCreate(v: Extract<View, { name: 'create' }>): string {
   return layout(
-    'Press and hold “Peek” to see the target. Write a clue that points to it, then send.',
-    `<h1>New turn</h1>
+    'Press and hold “Peek” to see the target. Write a clue that guides the guessers to it, then send.',
+    `<h1>Make a wave</h1>
      ${cardEnds(v.card.left, v.card.right)}
      <div class="dial-host secret" id="dial">${dialSvg({ target: v.target })}</div>
      <div class="row-buttons">
@@ -191,7 +191,7 @@ function renderCreate(v: Extract<View, { name: 'create' }>): string {
      <label class="field">Your clue<input id="clue" maxlength="60" autocomplete="off" placeholder="A word or phrase" value="${esc(v.clue)}"></label>
      <p class="tip">Tip: don’t use numbers or directions. Name a thing, person, or idea.</p>
      ${v.error ? `<p class="error">${esc(v.error)}</p>` : ''}`,
-    `<button data-act="home">Cancel</button><button class="primary" data-act="send">Send turn</button>`,
+    `<button data-act="home">Cancel</button><button class="primary" data-act="send">Send wave</button>`,
   );
 }
 
@@ -247,7 +247,7 @@ function renderTurns(v: Extract<View, { name: 'turns' }>): string {
   else if (v.tab === 'answered') list = all.filter((t) => hasGuessed(game, t.id, me!));
   else list = all.filter((t) => t.creatorId === me);
   const status = (t: Turn) => {
-    if (v.tab === 'waiting') return 'Answer ›';
+    if (v.tab === 'waiting') return 'Guess ›';
     if (v.tab === 'created') { const c = clueScore(game, t); return c === null ? 'No answers yet' : `${fmt(c)} pts`; }
     const g = game.guesses.find((x) => x.turnId === t.id && x.playerId === me)!;
     return `${pointsFor(g.position, t.target)} pts`;
@@ -255,8 +255,8 @@ function renderTurns(v: Extract<View, { name: 'turns' }>): string {
   const tab = (id: string, label: string) =>
     `<button class="tab ${v.tab === id ? 'on' : ''}" data-act="tab" data-id="${id}">${label}</button>`;
   return layout(
-    'Tap a turn to answer it or see how everyone did.',
-    `<h1>Turns</h1><div class="tabs">${tab('waiting', 'Waiting')}${tab('answered', 'I answered')}${tab('created', 'I made')}</div>
+    'Tap a wave to guess it or see how everyone did.',
+    `<h1>Waves</h1><div class="tabs">${tab('waiting', 'Waiting')}${tab('answered', 'I guessed')}${tab('created', 'I made')}</div>
      <div class="list">${list.length ? list.map((t) => turnRow(t, status(t))).join('') : '<p class="empty">Nothing here yet.</p>'}</div>`,
     `<button class="primary" data-act="home">Back</button>`,
   );
@@ -302,7 +302,7 @@ function renderCards(v: Extract<View, { name: 'cards' }>): string {
 
 function renderMenu(v: Extract<View, { name: 'menu' }>): string {
   const reset = v.confirmReset
-    ? `<p class="error">This erases every turn and score. Players and custom cards stay. Sure?</p>
+    ? `<p class="error">This erases every wave and score. Players and custom cards stay. Sure?</p>
        <div class="row-buttons"><button data-act="menu">Keep playing</button><button class="danger" data-act="reset">Yes, start over</button></div>`
     : `<button class="wide" data-act="confirm-reset">Start a new game…</button>`;
   return layout(
@@ -413,7 +413,7 @@ app.addEventListener('click', (e) => {
       case 'send':
         if (v.name === 'create') {
           commit(createTurn(game, me!, v.card, v.target, v.clue));
-          toast('Turn sent! Others can answer it now.');
+          toast('Wave sent! Others can guess it now.');
           go({ name: 'home' });
         }
         break;

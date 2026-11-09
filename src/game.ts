@@ -71,9 +71,9 @@ export function hasGuessed(state: GameState, turnId: string, playerId: string): 
 
 export function submitGuess(state: GameState, turnId: string, playerId: string, position: number): GameState {
   const turn = state.turns.find((t) => t.id === turnId);
-  if (!turn) throw new RuleError('That turn no longer exists.');
-  if (turn.creatorId === playerId) throw new RuleError("You can't answer your own turn."); // FR-309
-  if (hasGuessed(state, turnId, playerId)) throw new RuleError('You already answered this turn.'); // FR-404
+  if (!turn) throw new RuleError('That wave no longer exists.');
+  if (turn.creatorId === playerId) throw new RuleError("You can't guess your own wave."); // FR-309
+  if (hasGuessed(state, turnId, playerId)) throw new RuleError('You already guessed this wave.'); // FR-404
   const pos = Math.min(100, Math.max(0, position));
   return { ...state, guesses: [...state.guesses, { turnId, playerId, position: pos, createdAt: Date.now() }] };
 }
