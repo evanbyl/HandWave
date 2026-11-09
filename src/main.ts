@@ -125,13 +125,19 @@ function renderPicker(): string {
        </details>`
     : '';
   return layout(
-    active.length ? 'Tap yourself. New here? Tap “I’m new”.' : 'Welcome! Tap “I’m new” to join the game.',
+    active.length ? 'Tap yourself. New here? Tap Join Game.' : 'Welcome! Tap Join Game to start playing.',
     `<h1>Who are you?</h1><div class="people">${grid}</div>${returning}
      <section class="howto"><h2>How to play</h2>
-     <p>Each turn has a spectrum, like <em>Cold ↔ Hot</em>, and a secret spot on it. The creator writes a clue
-     that points to that spot. Everyone else drags the needle to where they think the clue belongs.
-     Closer guesses score more. No talking needed. Play what you like, then pass the phone.</p></section>`,
-    `<button class="primary" data-act="new-player">I’m new</button>`,
+     <p>One phone gets passed around. Whoever’s holding it can:</p>
+     <ul>
+       <li><strong>Make a turn.</strong> You get a spectrum, like <em>Cold ↔ Hot</em>, and a secret target on it.
+       Write a clue that points to the target.</li>
+       <li><strong>Answer clues.</strong> Drag the needle to where you think someone else’s clue belongs,
+       then see the target and how everyone scored.</li>
+     </ul>
+     <p>Do as many as you like, in any order, then pass the phone. No talking, no turn order.
+     Join or leave anytime.</p></section>`,
+    `<button class="primary" data-act="new-player">Join Game</button>`,
   );
 }
 
@@ -217,7 +223,7 @@ function renderReveal(v: Extract<View, { name: 'reveal' }>): string {
   const banner = mine
     ? `<p class="score s${mine.pts}">You scored <strong>${mine.pts}</strong> / 4</p>`
     : isCreator
-      ? `<p class="score">Your clue scores <strong>${fmt(clueScore(game, t))}</strong> / 4 on average</p>`
+      ? `<p class="score">Your Clue Score <strong>${fmt(clueScore(game, t))}</strong> / 4</p>`
       : '';
   const rows = guesses.length
     ? guesses.map((g) => `<div class="mini"><span>${who(g.playerId)}</span><strong>${g.pts}</strong></div>`).join('')
@@ -229,7 +235,7 @@ function renderReveal(v: Extract<View, { name: 'reveal' }>): string {
      ${cardEnds(t.left, t.right)}
      <div class="dial-host" id="dial">${dialSvg({ target: t.target, needle: mine?.position, markers: others })}</div>
      ${banner}
-     <h2>Guesses</h2><div class="list">${rows}</div>`,
+     <h2>Scores</h2><div class="list">${rows}</div>`,
     `<button class="primary" data-act="home">Done</button>`,
   );
 }
@@ -242,7 +248,7 @@ function renderTurns(v: Extract<View, { name: 'turns' }>): string {
   else list = all.filter((t) => t.creatorId === me);
   const status = (t: Turn) => {
     if (v.tab === 'waiting') return 'Answer ›';
-    if (v.tab === 'created') return `avg ${fmt(clueScore(game, t))}`;
+    if (v.tab === 'created') { const c = clueScore(game, t); return c === null ? 'No answers yet' : `${fmt(c)} pts`; }
     const g = game.guesses.find((x) => x.turnId === t.id && x.playerId === me)!;
     return `${pointsFor(g.position, t.target)} pts`;
   };
@@ -265,15 +271,14 @@ function renderBoard(): string {
       return `<div class="score-row ${p.active ? '' : 'away'}">
         <span class="rank">${rank}</span>
         <span class="name">${who(r.playerId)}${p.active ? '' : ' <small>(left)</small>'}
-          <small>Guesses ${fmt(r.guessAverage)} (${r.guessCount}) · Clues ${fmt(r.clueAverage)} (${r.clueCount})</small></span>
+          <small>Guessing Score ${fmt(r.guessAverage)} · Clue Score ${fmt(r.clueAverage)}</small></span>
         <strong>${fmt(r.combined)}</strong>
       </div>`;
     })
     .join('');
   return layout(
-    'Scores are averages out of 4, so joining late doesn’t hurt you.',
-    `<h1>Scores</h1><div class="list">${rows || '<p class="empty">No players yet.</p>'}</div>
-     <p class="tip">Combined = average of all your guesses and your answered clues. Numbers in parentheses are how many each is based on.</p>`,
+    'Scores are out of 4. Join or leave anytime.',
+    `<h1>Scores</h1><div class="list">${rows || '<p class="empty">No players yet.</p>'}</div>`,
     `<button class="primary" data-act="home">Back</button>`,
   );
 }
