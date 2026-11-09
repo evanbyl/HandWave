@@ -85,9 +85,9 @@ footer {
 }
 footer button { flex: 1; max-width: 260px; min-height: 56px; }
 
-.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
-.person { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 8px; min-height: 100px; }
-.big { font-size: 2.4rem; line-height: 1; }
+.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.person { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; min-height: 0; line-height: 1.2; }
+.big { font-size: 2rem; line-height: 1; }
 
 .returning { margin-top: 16px; color: var(--muted); }
 .returning summary { padding: 12px 0; cursor: pointer; }

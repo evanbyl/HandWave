@@ -4,9 +4,9 @@ A silent, phone-passing party game inspired by spectrum-guessing games.
 
 One phone gets passed around a loose circle of people. Anyone holding it can:
 
-- **Create a turn**: draw a spectrum card (e.g. *Cold ↔ Hot*), see a secret target on the dial, and write a clue phrase that points at it.
-- **Answer turns**: pick turns made by others, drag the dial needle to where you think the target is, and see how close you got.
-- **Check scores**: see each player's running average and every past turn.
+- **Create a wave**: draw a spectrum card (e.g. *Cold ↔ Hot*), see a secret target on the dial, and write a clue phrase that points at it.
+- **Answer waves**: pick waves made by others, drag the dial needle to where you think the target is, and see how close you got.
+- **Check scores**: see each player's running average and every past wave.
 
 There's no turn order and no talking required. It works like a ring of people casually tossing a Frisbee: whoever has the phone plays, then hands it on.
 
