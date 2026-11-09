@@ -37,7 +37,7 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 | FR-203 | Every screen shows the active player's emoji and name, and a **Pass the phone** button that returns to the picker. | Implemented |
 | FR-204 | Every screen shows a **one-line plain-language instruction** of what to do next (e.g. "Drag the needle to where you think the clue points"). A person handed the phone mid-game must be able to act without any explanation. | Implemented |
 | FR-205 | There is no enforced turn order. Any player may create turns or answer turns in any order and in any quantity before passing the phone. | Implemented |
-| FR-206 | The picker shows a short **"How to play"** that describes HandWave's own flow, not the board game's: one phone passed around, make turns and answer others' clues in any order, no talking, join or leave anytime, scores are averages. | Implemented |
+| FR-206 | The picker shows a short **"How to play"** that describes HandWave's own flow, not the board game's: one phone passed around, make turns and answer others' clues in any order, no talking, join or leave anytime. | Implemented |
 
 ## 3. Creating a turn
 
@@ -83,7 +83,8 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 | FR-603 | Each turn has a **clue score**: the mean of the points earned by everyone who answered it. A turn with no answers has no clue score yet. | Implemented |
 | FR-604 | Each player has a **clue average**: the mean of the clue scores of the turns they created that have at least one answer. | Implemented |
 | FR-605 | Each player has a **combined average** used to rank the leaderboard (calculation in ADR-006). | Implemented |
-| FR-606 | The leaderboard shows each player's **combined average**, with their **guess average** and **clue average** shown as components, plus how many guesses and scored clues each is based on. | Implemented |
+| FR-606 | The leaderboard shows each player's **score** (the combined average), with their **Guessing Score** and **Clue Score** shown as components. | Implemented |
+| FR-609 | The UI calls these simply **scores**. It doesn't explain, label, or mention averaging, or show how many events a score is based on; the averaging stays behind the scenes (FR-607). | Implemented |
 | FR-607 | Because players join and leave freely, all scores are **running averages**, never running totals. A player's ranking is not penalized for joining late or leaving early. | Implemented |
 | FR-608 | Scores update immediately after every guess. | Implemented |
 
