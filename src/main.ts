@@ -125,13 +125,19 @@ function renderPicker(): string {
        </details>`
     : '';
   return layout(
-    active.length ? 'Tap yourself. New here? Tap “I’m new”.' : 'Welcome! Tap “I’m new” to join the game.',
+    active.length ? 'Tap yourself. New here? Tap Join Game.' : 'Welcome! Tap Join Game to start playing.',
     `<h1>Who are you?</h1><div class="people">${grid}</div>${returning}
      <section class="howto"><h2>How to play</h2>
-     <p>Each turn has a spectrum, like <em>Cold ↔ Hot</em>, and a secret spot on it. The creator writes a clue
-     that points to that spot. Everyone else drags the needle to where they think the clue belongs.
-     Closer guesses score more. No talking needed. Play what you like, then pass the phone.</p></section>`,
-    `<button class="primary" data-act="new-player">I’m new</button>`,
+     <p>One phone gets passed around. Whoever’s holding it can:</p>
+     <ul>
+       <li><strong>Make a turn.</strong> You get a spectrum, like <em>Cold ↔ Hot</em>, and a secret target on it.
+       Write a clue that points to the target.</li>
+       <li><strong>Answer clues.</strong> Drag the needle to where you think someone else’s clue belongs,
+       then see the target and how everyone scored.</li>
+     </ul>
+     <p>Do as many as you like, in any order, then pass the phone. No talking, no turn order.
+     Join or leave anytime: scores are averages, so you’re never behind.</p></section>`,
+    `<button class="primary" data-act="new-player">Join Game</button>`,
   );
 }
 
@@ -229,7 +235,7 @@ function renderReveal(v: Extract<View, { name: 'reveal' }>): string {
      ${cardEnds(t.left, t.right)}
      <div class="dial-host" id="dial">${dialSvg({ target: t.target, needle: mine?.position, markers: others })}</div>
      ${banner}
-     <h2>Guesses</h2><div class="list">${rows}</div>`,
+     <h2>Scores</h2><div class="list">${rows}</div>`,
     `<button class="primary" data-act="home">Done</button>`,
   );
 }

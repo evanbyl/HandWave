@@ -32,11 +32,12 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 
 | ID | Requirement | Status |
 |---|---|---|
-| FR-201 | When the app opens, or after **Pass the phone** is tapped, it shows a **"Who are you?"** picker listing active players by emoji and name, plus a **"I'm new"** option. | Implemented |
+| FR-201 | When the app opens, or after **Pass the phone** is tapped, it shows a **"Who are you?"** picker listing active players by emoji and name, plus a **"Join Game"** button for new players. | Implemented |
 | FR-202 | After a player picks themselves, they land on **their home screen**, which shows: turns waiting for them to answer, a button to create a new turn, and the leaderboard. | Implemented |
 | FR-203 | Every screen shows the active player's emoji and name, and a **Pass the phone** button that returns to the picker. | Implemented |
 | FR-204 | Every screen shows a **one-line plain-language instruction** of what to do next (e.g. "Drag the needle to where you think the clue points"). A person handed the phone mid-game must be able to act without any explanation. | Implemented |
 | FR-205 | There is no enforced turn order. Any player may create turns or answer turns in any order and in any quantity before passing the phone. | Implemented |
+| FR-206 | The picker shows a short **"How to play"** that describes HandWave's own flow, not the board game's: one phone passed around, make turns and answer others' clues in any order, no talking, join or leave anytime, scores are averages. | Implemented |
 
 ## 3. Creating a turn
 
@@ -60,7 +61,7 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 | FR-402 | Opening a turn shows the card's two ends, the clue, and who created it. The target and other players' guesses stay hidden. | Implemented |
 | FR-403 | The guesser sets their answer by **dragging a dial needle** across the half-circle, then submits. | Implemented |
 | FR-404 | Each player can answer each turn **once**. A submitted guess cannot be changed. | Implemented |
-| FR-405 | Right after submitting, the guesser sees the **reveal**: the target, the scoring zones, their own needle, their points for the turn, and all other guesses on that turn. | Implemented |
+| FR-405 | Right after submitting, the guesser sees the **reveal**: the target, the scoring zones, their own needle, their points for the turn, and all other guesses on that turn. The list of players' points is headed **"Scores"** (not "Guesses", which reads as a count). | Implemented |
 | FR-406 | A player can answer any number of turns before passing the phone. | Implemented |
 | FR-407 | Turns never close. A player who joins later can answer any earlier turn they didn't create. | Implemented |
 

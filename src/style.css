@@ -95,6 +95,8 @@ footer button { flex: 1; max-width: 260px; min-height: 56px; }
 
 .howto { margin-top: 24px; color: var(--muted); font-size: 0.95rem; }
 .howto h2 { margin-top: 0; }
+.howto ul { margin: 8px 0; padding-left: 20px; }
+.howto li { margin-bottom: 6px; }
 
 .field { display: block; margin: 12px 0; color: var(--muted); font-size: 0.95rem; }
 .field input {
