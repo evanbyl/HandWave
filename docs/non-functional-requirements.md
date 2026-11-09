@@ -6,7 +6,7 @@ Quality bars every feature must meet. IDs are stable; status values match the fu
 
 | ID | Requirement | Status |
 |---|---|---|
-| NFR-101 | **Zero-explanation use:** a first-time player handed the phone mid-game can answer a wave within 30 seconds without help. | Accepted |
+| NFR-101 | **Zero-explanation use:** a first-time player handed the phone mid-game can answer a clue within 30 seconds without help. | Accepted |
 | NFR-102 | **Mobile-first layout** that works on phone screens 360 px wide and up, in portrait orientation. | Accepted |
 | NFR-103 | **One-handed play:** primary actions sit within thumb reach in the lower half of the screen. | Accepted |
 | NFR-104 | **Silent play:** the game never depends on sound or speech. No audio is required to play. | Accepted |
@@ -18,7 +18,7 @@ Quality bars every feature must meet. IDs are stable; status values match the fu
 
 | ID | Requirement | Status |
 |---|---|---|
-| NFR-201 | A wave's target is never visible on screen to someone who hasn't earned the reveal, except to the creator while holding to peek (FR-305). | Accepted |
+| NFR-201 | A clue's target is never visible on screen to someone who hasn't earned the reveal, except to the creator while holding to peek (FR-305). | Accepted |
 | NFR-202 | All game data stays on the phone. Nothing is sent to a server; there are no accounts, ads, or analytics. | Implemented |
 
 ## Reliability and data

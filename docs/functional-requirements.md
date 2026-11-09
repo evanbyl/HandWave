@@ -9,10 +9,9 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 |---|---|
 | **Spectrum card** | A pair of opposite ideas shown at the two ends of the dial, e.g. *Insult ↔ Compliment*. |
 | **Dial** | A half-circle from the card's left concept to its right concept. Positions run from 0 (far left) to 100 (far right). |
-| **Target** | A secret position on the dial chosen at random when a wave is created. |
-| **Clue** | A short phrase the creator writes to point guessers toward the target. |
-| **Wave** | One card + one target + one clue, made by one player. A wave stays open for anyone else to guess, indefinitely. Called a *turn* in earlier documents (ADR-001–ADR-009) and in the code (`Turn`). |
-| **Guess** | One player's dial position for one wave. |
+| **Target** | A secret position on the dial chosen at random when a clue is created. |
+| **Clue** | One card + one target + one **clue text** (a short phrase that guides guessers toward the target), made by one player. A clue stays open for anyone else to guess, indefinitely. Called a *turn* in earlier decision records (ADR-001–ADR-009) and in the code (`Turn`). |
+| **Guess** | One player's dial position for one clue. |
 | **Active player** | The player who has identified themselves as currently holding the phone. |
 
 ---
@@ -24,7 +23,7 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 | FR-101 | A player is identified by a **name and an emoji**. No passwords or accounts. | Implemented |
 | FR-102 | Anyone can **join at any time** by entering a name and choosing an emoji in a single step. | Implemented |
 | FR-103 | Each player's name + emoji combination must be unique, so players can spot themselves at a glance. | Implemented |
-| FR-104 | A player can **leave at any time**. Leaving hides them from the "Who are you?" picker but keeps their waves, guesses, and scores. | Implemented |
+| FR-104 | A player can **leave at any time**. Leaving hides them from the "Who are you?" picker but keeps their clues, guesses, and scores. | Implemented |
 | FR-105 | A player who left can **rejoin** and pick up their existing history and scores. | Implemented |
 | FR-106 | The game supports any number of players from 1 upward. No minimum player count is enforced. | Implemented |
 
@@ -33,47 +32,47 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 | ID | Requirement | Status |
 |---|---|---|
 | FR-201 | When the app opens, or after **Pass the phone** is tapped, it shows a **"Who are you?"** picker listing active players by emoji and name, plus a **"Join Game"** button for new players. | Implemented |
-| FR-202 | After a player picks themselves, they land on **their home screen**, which shows: waves waiting for them to answer, a button to create a new wave, and the leaderboard. | Implemented |
+| FR-202 | After a player picks themselves, they land on **their home screen**, which shows: clues waiting for them to answer, a button to create a new clue, and the leaderboard. | Implemented |
 | FR-203 | Every screen shows the active player's emoji and name, and a **Pass the phone** button that returns to the picker. | Implemented |
 | FR-204 | Every screen except the "Who are you?" picker shows a **one-line plain-language instruction** of what to do next (e.g. "Drag the needle to where you think the clue points"). A person handed the phone mid-game must be able to act without any explanation. The picker has no instruction line, since its heading and Join Game button already say what to do and vertical space is tight. | Implemented |
-| FR-205 | There is no enforced turn order. Any player may create waves or answer waves in any order and in any quantity before passing the phone. | Implemented |
-| FR-206 | The picker shows a short **"How to play"** that describes HandWave's own flow, not the board game's: one phone passed around, make waves and answer others' clues in any order, no talking, join or leave anytime. | Implemented |
-| FR-207 | The UI calls a turn a **wave**, so it isn't confused with whose turn it is to hold the phone. The two actions are **Make a wave** and **Guess a wave**. | Implemented |
+| FR-205 | There is no enforced turn order. Any player may create clues or answer clues in any order and in any quantity before passing the phone. | Implemented |
+| FR-206 | The picker shows a short **"How to play"** that describes HandWave's own flow, not the board game's: one phone passed around, make clues and answer others' clues in any order, no talking, join or leave anytime. | Implemented |
+| FR-207 | The UI calls the unit of play a **clue** and a player's response a **guess**. The two actions are **Write a clue** and **Guess**. It avoids "turn" (confused with whose turn it is to hold the phone) and invented terms like "wave". | Implemented |
 
-## 3. Making a wave
+## 3. Writing a clue
 
 | ID | Requirement | Status |
 |---|---|---|
-| FR-301 | The active player can create a new wave from their home screen. | Implemented |
-| FR-302 | Creating a wave **draws a random spectrum card** from the deck (built-in plus custom cards). | Implemented |
+| FR-301 | The active player can create a new clue from their home screen. | Implemented |
+| FR-302 | Creating a clue **draws a random spectrum card** from the deck (built-in plus custom cards). | Implemented |
 | FR-303 | The creator may **redraw** the card before submitting. Redraws are unlimited. | Implemented |
-| FR-304 | The app picks a **random target** position on the dial for the wave. | Implemented |
+| FR-304 | The app picks a **random target** position on the dial for the clue. | Implemented |
 | FR-305 | The target is **hidden by default**. The creator sees it only while **pressing and holding** a "Peek at target" control (hold-to-peek). Releasing hides it again. | Implemented |
-| FR-306 | The creator types a **clue phrase** and submits. The clue must not be empty. | Implemented |
-| FR-307 | After submitting, the wave is saved and immediately available for all other players to answer. | Implemented |
-| FR-308 | There is no limit on how many waves a player creates before passing the phone. | Implemented |
-| FR-309 | The creator **cannot answer their own wave**. | Implemented |
+| FR-306 | The creator types the **clue text** and submits. It must not be empty. | Implemented |
+| FR-307 | After submitting, the clue is saved and immediately available for all other players to answer. | Implemented |
+| FR-308 | There is no limit on how many clues a player creates before passing the phone. | Implemented |
+| FR-309 | The creator **cannot answer their own clue**. | Implemented |
 
-## 4. Guessing a wave
+## 4. Guessing a clue
 
 | ID | Requirement | Status |
 |---|---|---|
-| FR-401 | The home screen lists **waves waiting for the active player**: waves created by others that this player hasn't answered yet. | Implemented |
-| FR-402 | Opening a wave shows the card's two ends, the clue, and who created it. The target and other players' guesses stay hidden. | Implemented |
+| FR-401 | The home screen lists **clues waiting for the active player**: clues created by others that this player hasn't answered yet. | Implemented |
+| FR-402 | Opening a clue shows the card's two ends, the clue text, and who wrote it. The target and other players' guesses stay hidden. | Implemented |
 | FR-403 | The guesser sets their answer by **dragging a dial needle** across the half-circle, then submits. | Implemented |
-| FR-404 | Each player can answer each wave **once**. A submitted guess cannot be changed. | Implemented |
-| FR-405 | Right after submitting, the guesser sees the **reveal**: the target, the scoring zones, their own needle, their points for the wave, and all other guesses on that wave. The list of players' points is headed **"Scores"** (not "Guesses", which reads as a count). | Implemented |
-| FR-406 | A player can answer any number of waves before passing the phone. | Implemented |
-| FR-407 | Waves never close. A player who joins later can answer any earlier wave they didn't create. | Implemented |
+| FR-404 | Each player can answer each clue **once**. A submitted guess cannot be changed. | Implemented |
+| FR-405 | Right after submitting, the guesser sees the **reveal**: the target, the scoring zones, their own needle, their points for the clue, and all other guesses on that clue. The list of players' points is headed **"Scores"** (not "Guesses", which reads as a count). | Implemented |
+| FR-406 | A player can answer any number of clues before passing the phone. | Implemented |
+| FR-407 | Clues never close. A player who joins later can answer any earlier clue they didn't create. | Implemented |
 
-## 5. Viewing waves and history
+## 5. Viewing clues and history
 
 | ID | Requirement | Status |
 |---|---|---|
-| FR-501 | The active player can browse **all waves**, filtered as: *Waiting for me*, *I answered*, and *I created*. | Implemented |
-| FR-502 | For a wave the active player **answered**, they can see the target, every player's guess, and every player's points for that wave. | Implemented |
-| FR-503 | For a wave the active player **created**, they can see the target, every guess, every guesser's points, and the wave's clue score (FR-603), at any time. | Implemented |
-| FR-504 | For a wave the active player has **not answered and did not create**, the target and others' guesses stay hidden until they answer (see FR-402). | Implemented |
+| FR-501 | The active player can browse **all clues**, filtered as: *Waiting for me*, *I answered*, and *I created*. | Implemented |
+| FR-502 | For a clue the active player **answered**, they can see the target, every player's guess, and every player's points for that clue. | Implemented |
+| FR-503 | For a clue the active player **created**, they can see the target, every guess, every guesser's points, and the clue's clue score (FR-603), at any time. | Implemented |
+| FR-504 | For a clue the active player has **not answered and did not create**, the target and others' guesses stay hidden until they answer (see FR-402). | Implemented |
 
 ## 6. Scoring
 
@@ -81,8 +80,8 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 |---|---|---|
 | FR-601 | A guess earns **4, 3, 2, or 0 points** based on its distance from the target, using classic scoring zones (see ADR-006). | Implemented |
 | FR-602 | Each player has a **guess average**: the mean of the points from all their guesses. | Implemented |
-| FR-603 | Each wave has a **clue score**: the mean of the points earned by everyone who answered it. A wave with no answers has no clue score yet. | Implemented |
-| FR-604 | Each player has a **clue average**: the mean of the clue scores of the waves they created that have at least one answer. | Implemented |
+| FR-603 | Each clue has a **clue score**: the mean of the points earned by everyone who answered it. A clue with no answers has no clue score yet. | Implemented |
+| FR-604 | Each player has a **clue average**: the mean of the clue scores of the clues they created that have at least one answer. | Implemented |
 | FR-605 | Each player has a **combined average** used to rank the leaderboard (calculation in ADR-006). | Implemented |
 | FR-606 | The leaderboard shows each player's **score** (the combined average), with their **Guessing Score** and **Clue Score** shown as components. | Implemented |
 | FR-609 | The UI calls these simply **scores**. It doesn't explain, label, or mention averaging, or show how many events a score is based on; the averaging stays behind the scenes (FR-607). | Implemented |
@@ -103,5 +102,5 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 | ID | Requirement | Status |
 |---|---|---|
 | FR-801 | There is **one ongoing game** on the phone. It continues across app closes and restarts. | Implemented |
-| FR-802 | A **New game** action clears all waves, guesses, and scores. It requires a confirmation step. | Implemented |
+| FR-802 | A **New game** action clears all clues, guesses, and scores. It requires a confirmation step. | Implemented |
 | FR-803 | New game keeps the player list and custom cards. | Implemented (per assumption in Q1; still Proposed) |
