@@ -166,7 +166,7 @@ function renderHome(): string {
     : `<p class="empty">No scores yet.</p>`;
   return layout(
     waiting.length ? 'Tap a clue to guess it, or write your own.' : 'Write a clue: you’ll get a secret target to guide the guessers to.',
-    `<h2>Waiting for you (${waiting.length})</h2><div class="list">${list}</div>
+    `<h2>Clues to guess (${waiting.length})</h2><div class="list">${list}</div>
      <h2>Top scores</h2><div class="list">${board}</div>
      <nav class="links">
        <button data-act="turns">All clues</button>
@@ -256,7 +256,7 @@ function renderTurns(v: Extract<View, { name: 'turns' }>): string {
     `<button class="tab ${v.tab === id ? 'on' : ''}" data-act="tab" data-id="${id}">${label}</button>`;
   return layout(
     'Tap a clue to guess it or see how everyone did.',
-    `<h1>Clues</h1><div class="tabs">${tab('waiting', 'Waiting')}${tab('answered', 'I guessed')}${tab('created', 'My clues')}</div>
+    `<h1>Clues</h1><div class="tabs">${tab('waiting', 'To guess')}${tab('answered', 'I guessed')}${tab('created', 'My clues')}</div>
      <div class="list">${list.length ? list.map((t) => turnRow(t, status(t))).join('') : '<p class="empty">Nothing here yet.</p>'}</div>`,
     `<button class="primary" data-act="home">Back</button>`,
   );

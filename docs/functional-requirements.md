@@ -57,7 +57,7 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 
 | ID | Requirement | Status |
 |---|---|---|
-| FR-401 | The home screen lists **clues waiting for the active player**: clues created by others that this player hasn't answered yet. | Implemented |
+| FR-401 | The home screen lists **Clues to guess**: clues written by others that the active player hasn't guessed yet. | Implemented |
 | FR-402 | Opening a clue shows the card's two ends, the clue text, and who wrote it. The target and other players' guesses stay hidden. | Implemented |
 | FR-403 | The guesser sets their answer by **dragging a dial needle** across the half-circle, then submits. | Implemented |
 | FR-404 | Each player can answer each clue **once**. A submitted guess cannot be changed. | Implemented |
@@ -69,7 +69,7 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 
 | ID | Requirement | Status |
 |---|---|---|
-| FR-501 | The active player can browse **all clues**, filtered as: *Waiting for me*, *I answered*, and *I created*. | Implemented |
+| FR-501 | The active player can browse **all clues**, filtered as: *To guess*, *I guessed*, and *My clues*. | Implemented |
 | FR-502 | For a clue the active player **answered**, they can see the target, every player's guess, and every player's points for that clue. | Implemented |
 | FR-503 | For a clue the active player **created**, they can see the target, every guess, every guesser's points, and the clue's clue score (FR-603), at any time. | Implemented |
 | FR-504 | For a clue the active player has **not answered and did not create**, the target and others' guesses stay hidden until they answer (see FR-402). | Implemented |
