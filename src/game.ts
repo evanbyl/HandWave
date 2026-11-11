@@ -65,6 +65,18 @@ export function createTurn(
   return { ...state, turns: [...state.turns, turn] };
 }
 
+/** Creator deletes their own clue and every guess on it (FR-310). */
+export function deleteTurn(state: GameState, turnId: string, playerId: string): GameState {
+  const turn = state.turns.find((t) => t.id === turnId);
+  if (!turn) throw new RuleError('That clue no longer exists.');
+  if (turn.creatorId !== playerId) throw new RuleError('You can only delete your own clues.');
+  return {
+    ...state,
+    turns: state.turns.filter((t) => t.id !== turnId),
+    guesses: state.guesses.filter((g) => g.turnId !== turnId),
+  };
+}
+
 export function hasGuessed(state: GameState, turnId: string, playerId: string): boolean {
   return state.guesses.some((g) => g.turnId === turnId && g.playerId === playerId);
 }

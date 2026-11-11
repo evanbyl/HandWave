@@ -21,7 +21,7 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 | ID | Requirement | Status |
 |---|---|---|
 | FR-101 | A player is identified by a **name and an emoji**. No passwords or accounts. | Implemented |
-| FR-102 | Anyone can **join at any time** by entering a name and choosing an emoji in a single step. | Implemented |
+| FR-102 | Anyone can **join at any time** by entering a name and choosing an emoji in a single step. An emoji not used by any active player is **pre-selected**, so typing a name and pressing Join is enough. | Implemented |
 | FR-103 | Each player's name + emoji combination must be unique, so players can spot themselves at a glance. | Implemented |
 | FR-104 | A player can **leave at any time**. Leaving hides them from the "Who are you?" picker but keeps their clues, guesses, and scores. | Implemented |
 | FR-105 | A player who left can **rejoin** and pick up their existing history and scores. | Implemented |
@@ -32,7 +32,7 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 | ID | Requirement | Status |
 |---|---|---|
 | FR-201 | When the app opens, or after **Pass the phone** is tapped, it shows a **"Who are you?"** picker listing active players by emoji and name, plus a **"Join Game"** button for new players. | Implemented |
-| FR-202 | After a player picks themselves, they land on **their home screen**, which shows: clues waiting for them to answer, a button to create a new clue, and the leaderboard. | Implemented |
+| FR-202 | After a player picks themselves, they land on **their home screen**, which shows: clues waiting for them to answer, a button to create a new clue, and the leaderboard. The *Clues to guess* and *Top scores* sections are **hidden when empty**, with no placeholder text, to save vertical space. | Implemented |
 | FR-203 | Every screen shows the active player's emoji and name, and a **Pass the phone** button that returns to the picker. | Implemented |
 | FR-204 | Every screen except the "Who are you?" picker shows a **one-line plain-language instruction** of what to do next (e.g. "Drag the needle to where you think the clue points"). A person handed the phone mid-game must be able to act without any explanation. The picker has no instruction line, since its heading and Join Game button already say what to do and vertical space is tight. | Implemented |
 | FR-205 | There is no enforced turn order. Any player may create clues or answer clues in any order and in any quantity before passing the phone. | Implemented |
@@ -52,6 +52,7 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 | FR-307 | After submitting, the clue is saved and immediately available for all other players to answer. | Implemented |
 | FR-308 | There is no limit on how many clues a player creates before passing the phone. | Implemented |
 | FR-309 | The creator **cannot answer their own clue**. | Implemented |
+| FR-310 | The creator can **delete their own clue** from the *My clues* tab of the Clues screen. Deleting asks for confirmation, then removes the clue and every guess on it, so the points from those guesses leave everyone's scores. Players can't delete other players' clues. Clues can't be edited. | Implemented |
 
 ## 4. Guessing a clue
 
@@ -64,6 +65,7 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 | FR-405 | Right after submitting, the guesser sees the **reveal**: the target, the scoring zones, their own needle, their points for the clue, and all other guesses on that clue. The list of players' points is headed **"Scores"** (not "Guesses", which reads as a count). | Implemented |
 | FR-406 | A player can answer any number of clues before passing the phone. | Implemented |
 | FR-407 | Clues never close. A player who joins later can answer any earlier clue they didn't create. | Implemented |
+| FR-408 | When the reveal is shown and more clues are waiting for the active player, a **Next clue** button opens the next one directly. | Implemented |
 
 ## 5. Viewing clues and history
 
@@ -104,3 +106,14 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 | FR-801 | There is **one ongoing game** on the phone. It continues across app closes and restarts. | Implemented |
 | FR-802 | A **New game** action clears all clues, guesses, and scores. It requires a confirmation step. | Implemented |
 | FR-803 | New game keeps the player list and custom cards. | Implemented (per assumption in Q1; still Proposed) |
+
+## 9. Navigation and input
+
+| ID | Requirement | Status |
+|---|---|---|
+| FR-901 | The browser's or phone's **Back** does the same thing as the on-screen Back, Cancel, Skip, or Done button: it returns to the screen the player came from (e.g. a clue opened from the Clues screen returns to that screen and tab). | Implemented |
+| FR-902 | On the home screen, Back does the same as **Pass the phone**: it returns to the "Who are you?" picker. | Implemented |
+| FR-903 | On the "Who are you?" picker, Back **stays in the app**. Repeated Back presses never leave HandWave. | Implemented |
+| FR-904 | A single-line text field's **submit button sits inside the field, on the right** (e.g. *Send* in the clue field, *Join* in the name field, *Add* in the card field). | Implemented |
+| FR-905 | The keyboard's **Enter / Go / Send key submits** the field. In the two-field custom card form, Enter in the first field moves to the second. | Implemented |
+| FR-906 | Picking an emoji while typing a name doesn't close the keyboard or clear what's typed. | Implemented |
