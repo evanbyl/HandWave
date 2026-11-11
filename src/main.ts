@@ -30,7 +30,7 @@ registerSW({ immediate: true });
 type Tab = 'waiting' | 'answered' | 'created';
 
 type View =
-  | { name: 'picker' }
+  | { name: 'picker'; confirmExit?: boolean }
   | { name: 'join'; emoji: string; nameText: string; error?: string }
   | { name: 'home' }
   | { name: 'create'; card: Card; target: number; clue: string; error?: string }
@@ -147,6 +147,16 @@ function ensureGuard(): void {
 history.replaceState({ hw: 'base' }, '');
 ensureGuard();
 window.addEventListener('popstate', () => {
+  // FR-903: on the picker, Back asks first. The spare entry isn't restored,
+  // so a second Back leaves; Stay (or any tap) restores it.
+  if (view.name === 'picker') {
+    // Already asked: keep going back past any older HandWave entries (e.g. from reloads).
+    if (view.confirmExit) return history.back();
+    view = { name: 'picker', confirmExit: true };
+    render();
+    window.scrollTo(0, 0);
+    return;
+  }
   back();
   ensureGuard();
 });
@@ -196,7 +206,7 @@ function layout(hint: string, main: string, footer = ''): string {
 
 // ---------- screens ----------
 
-function renderPicker(): string {
+function renderPicker(v: Extract<View, { name: 'picker' }>): string {
   const active = game.players.filter((p) => p.active);
   const away = game.players.filter((p) => !p.active);
   const grid = active
@@ -209,7 +219,15 @@ function renderPicker(): string {
     : '';
   return layout(
     '',
-    `<h1>Who are you?</h1>${active.length ? `<div class="people">${grid}</div>` : ''}${returning}
+    `${
+      v.confirmExit
+        ? `<div class="confirm exit" role="alert">
+             <p>Leave HandWave?</p>
+             <p class="tip">Your game is saved. Press Back again to leave.</p>
+             <div class="row-buttons"><button class="primary" data-act="stay">Stay</button></div>
+           </div>`
+        : ''
+    }<h1>Who are you?</h1>${active.length ? `<div class="people">${grid}</div>` : ''}${returning}
      <section class="howto"><h2>How to play</h2>
      <p>One phone gets passed around. Whoever’s holding it can:</p>
      <ul>
@@ -431,7 +449,7 @@ function render(): void {
     return render();
   }
   switch (v.name) {
-    case 'picker': app.innerHTML = renderPicker(); break;
+    case 'picker': app.innerHTML = renderPicker(v); break;
     case 'join': app.innerHTML = renderJoin(v); break;
     case 'home': app.innerHTML = renderHome(); break;
     case 'create': app.innerHTML = renderCreate(v); break;
@@ -518,6 +536,7 @@ function act(action: string, id: string): void {
   const v = view;
   switch (action) {
     case 'back': back(); break;
+    case 'stay': go({ name: 'picker' }); break;
     case 'pass': passPhone(); break;
     case 'pick': me = id; go({ name: 'home' }); break;
     case 'rejoin': commit(rejoinPlayer(game, id)); me = id; go({ name: 'home' }); break;

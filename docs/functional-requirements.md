@@ -113,7 +113,7 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 |---|---|---|
 | FR-901 | The browser's or phone's **Back** does the same thing as the on-screen Back, Cancel, Skip, or Done button: it returns to the screen the player came from (e.g. a clue opened from the Clues screen returns to that screen and tab). | Implemented |
 | FR-902 | On the home screen, Back does the same as **Pass the phone**: it returns to the "Who are you?" picker. | Implemented |
-| FR-903 | On the "Who are you?" picker, Back **stays in the app**. Repeated Back presses never leave HandWave. | Implemented |
+| FR-903 | On the "Who are you?" picker, Back doesn't leave right away. It shows a **"Leave HandWave?"** prompt saying the game is saved. Pressing Back again leaves; **Stay** (or tapping anything else) dismisses the prompt. | Implemented |
 | FR-904 | A single-line text field's **submit button sits inside the field, on the right** (e.g. *Send* in the clue field, *Join* in the name field, *Add* in the card field). | Implemented |
 | FR-905 | The keyboard's **Enter / Go / Send key submits** the field. In the two-field custom card form, Enter in the first field moves to the second. | Implemented |
 | FR-906 | Picking an emoji while typing a name doesn't close the keyboard or clear what's typed. | Implemented |
