@@ -258,7 +258,7 @@ function renderJoin(v: Extract<View, { name: 'join' }>): string {
 
 function renderHome(): string {
   const waiting = waitingFor(game, me!);
-  const top = leaderboard(game).filter((r) => r.combined !== null).slice(0, 3);
+  const top = leaderboard(game).filter((r) => r.combined !== null).slice(0, 4); // FR-202: top four
   // FR-202: empty sections are hidden, not explained.
   const toGuess = waiting.length
     ? `<h2>Clues to guess (${waiting.length})</h2><div class="list">${waiting.map((t) => turnRow(t, 'Guess ›')).join('')}</div>`
