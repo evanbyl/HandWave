@@ -3,6 +3,7 @@ import {
   RuleError,
   canSeeReveal,
   createTurn,
+  deleteTurn,
   joinPlayer,
   leavePlayer,
   newGame,
@@ -71,6 +72,31 @@ describe('turns and guesses (FR-3xx, FR-4xx)', () => {
     expect(canSeeReveal(t, turn, ann)).toBe(true);
     expect(canSeeReveal(t, turn, bo)).toBe(false);
     expect(canSeeReveal(submitGuess(t, turn.id, bo, 10), turn, bo)).toBe(true);
+  });
+});
+
+describe('deleting a clue (FR-310)', () => {
+  it('removes the clue and its guesses, so scores drop them', () => {
+    const { s, ann, bo } = twoPlayers();
+    let t = createTurn(s, ann, { left: 'A', right: 'B' }, 50, 'one');
+    t = createTurn(t, ann, { left: 'A', right: 'B' }, 50, 'two');
+    const [first, second] = t.turns;
+    t = submitGuess(t, first.id, bo, 50);
+    t = submitGuess(t, second.id, bo, 50);
+    const d = deleteTurn(t, first.id, ann);
+    expect(d.turns.map((x) => x.id)).toEqual([second.id]);
+    expect(d.guesses.map((g) => g.turnId)).toEqual([second.id]);
+  });
+
+  it("blocks deleting someone else's clue", () => {
+    const { s, ann, bo } = twoPlayers();
+    const t = createTurn(s, ann, { left: 'A', right: 'B' }, 50, 'mine');
+    expect(() => deleteTurn(t, t.turns[0].id, bo)).toThrow(RuleError);
+  });
+
+  it('rejects a clue that no longer exists', () => {
+    const { s, ann } = twoPlayers();
+    expect(() => deleteTurn(s, 'missing', ann)).toThrow(RuleError);
   });
 });
 

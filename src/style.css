@@ -98,18 +98,35 @@ footer button { flex: 1; max-width: 260px; min-height: 56px; }
 .howto ul { margin: 8px 0; padding-left: 20px; }
 .howto li { margin-bottom: 6px; }
 
-.field { display: block; margin: 12px 0; color: var(--muted); font-size: 0.95rem; }
-.field input {
+.inline-form { margin: 12px 0; }
+.field { display: block; margin: 12px 0 6px; color: var(--muted); font-size: 0.95rem; }
+.inline-form .field:first-child { margin-top: 0; }
+
+/* Text field with its submit button inside, on the right (FR-904). */
+.field-row { position: relative; }
+input.text {
   display: block;
   width: 100%;
-  margin-top: 6px;
+  min-height: 56px;
   padding: 14px;
   font: inherit;
-  font-size: 1.1rem;
+  font-size: 1.1rem; /* 16px+ stops iOS zooming in on focus */
   color: var(--text);
   background: var(--panel);
   border: 2px solid var(--panel-2);
   border-radius: 12px;
+}
+.field-row:has(.inset) input.text { padding-right: 92px; }
+input.text:focus { border-color: var(--accent); outline: none; }
+button.inset {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  bottom: 6px;
+  min-height: 44px;
+  min-width: 76px;
+  padding: 0 14px;
+  border-radius: 9px;
 }
 .label { color: var(--muted); font-size: 0.95rem; margin: 12px 0 6px; }
 
@@ -128,7 +145,7 @@ footer button { flex: 1; max-width: 260px; min-height: 56px; }
   padding: 12px 14px;
   background: var(--panel);
 }
-.row-main { display: flex; flex-direction: column; gap: 2px; }
+.row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
 .row-main small, .score-row small { color: var(--muted); }
 .row-side { color: var(--accent); white-space: nowrap; font-weight: 600; }
 
@@ -202,3 +219,21 @@ footer button { flex: 1; max-width: 260px; min-height: 56px; }
   z-index: 10;
   max-width: 90vw;
 }
+
+/* Delete control on My clues (FR-310). */
+.row-wrap { display: flex; gap: 8px; align-items: stretch; }
+.row-wrap .row { flex: 1; min-width: 0; }
+button.icon { flex: 0 0 52px; padding: 0; font-size: 1.2rem; background: var(--panel); }
+.confirm {
+  padding: 12px 14px 4px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 2px solid var(--danger);
+}
+.confirm p { margin: 0; font-weight: 600; }
+.confirm .row-buttons { margin: 10px 0 8px; }
+
+/* Stop pull-to-refresh from reloading mid-game. */
+html, body { overscroll-behavior-y: none; }
+.confirm.exit { margin: 8px 0 4px; }
+.confirm.exit .tip { margin: 4px 0 0; font-weight: 400; }
