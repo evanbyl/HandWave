@@ -1,6 +1,6 @@
 # ADR-006: Scoring zones and averages
 
-Status: Accepted
+Status: Superseded by ADR-010 (scoring zones carried over)
 Date: 2026-11-08
 
 ## Context

@@ -32,7 +32,7 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 | ID | Requirement | Status |
 |---|---|---|
 | FR-201 | When the app opens, or after **Pass the phone** is tapped, it shows a **"Who are you?"** picker listing active players by emoji and name, plus a **"Join Game"** button for new players. | Implemented |
-| FR-202 | After a player picks themselves, they land on **their home screen**, which shows: clues waiting for them to answer, a button to create a new clue, and the **top four** players by score. The *Clues to guess* and *Top scores* sections are **hidden when empty**, with no placeholder text, to save vertical space. | Implemented |
+| FR-202 | After a player picks themselves, they land on **their home screen**, which shows: clues waiting for them to answer, a button to create a new clue, and the **top four** players by **Today's** score. The *Clues to guess* and *Top scores* sections are **hidden when empty**, with no placeholder text, to save vertical space. | Implemented |
 | FR-203 | Every screen shows the active player's emoji and name, and a **Pass the phone** button that returns to the picker. | Implemented |
 | FR-204 | Every screen except the "Who are you?" picker shows a **one-line plain-language instruction** of what to do next (e.g. "Drag the needle to where you think the clue points"). A person handed the phone mid-game must be able to act without any explanation. The picker has no instruction line, since its heading and Join Game button already say what to do and vertical space is tight. | Implemented |
 | FR-205 | There is no enforced turn order. Any player may create clues or answer clues in any order and in any quantity before passing the phone. | Implemented |
@@ -78,16 +78,26 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 
 ## 6. Scoring
 
+Calculations are defined in ADR-010.
+
 | ID | Requirement | Status |
 |---|---|---|
-| FR-601 | A guess earns **4, 3, 2, or 0 points** based on its distance from the target, using classic scoring zones (see ADR-006). | Implemented |
-| FR-602 | Each player has a **guess average**: the mean of the points from all their guesses. | Implemented |
-| FR-603 | Each clue has a **clue score**: the mean of the points earned by everyone who answered it. A clue with no answers has no clue score yet. | Implemented |
-| FR-604 | Each player has a **clue average**: the mean of the clue scores of the clues they created that have at least one answer. | Implemented |
-| FR-605 | Each player has a **combined average** used to rank the leaderboard (calculation in ADR-006). | Implemented |
-| FR-606 | The leaderboard shows each player's **score** (the combined average), with their **Guessing Score** and **Clue Score** shown as components. | Implemented |
-| FR-609 | The UI calls these simply **scores**. It doesn't explain, label, or mention averaging, or show how many events a score is based on; the averaging stays behind the scenes (FR-607). | Implemented |
-| FR-607 | Because players join and leave freely, all scores are **running averages**, never running totals. A player's ranking is not penalized for joining late or leaving early. | Implemented |
+| FR-601 | A guess earns **zone points of 4, 3, 2, or 0** based on its distance from the target (ADR-006 zones, carried into ADR-010). | Implemented |
+| FR-610 | **Middle bonus:** a scoring guess on a clue whose target is in the middle third of the dial earns **+1**. | Implemented |
+| FR-611 | **Best-guess bonus:** on a clue with two or more guesses, the highest-scoring guess earns **+1**. Ties share it, it needs a score above 0, and a later better guess takes it over. | Implemented |
+| FR-602 | Each player has a **Guessing Score** built from the points of their guesses. | Implemented |
+| FR-603 | Each clue has a **Clue Score**: the mean of its guessers' zone and middle points (not the best-guess bonus). A clue with no guesses has no Clue Score yet. | Implemented |
+| FR-604 | Each player has a **Clue Score** component built from the Clue Scores of the clues they wrote. | Implemented |
+| FR-605 | Each player has a **combined score** used to rank the leaderboard, built from all their guesses and clues. | Implemented |
+| FR-612 | **Recent play counts most:** Today scores weight each new result at 20%, so a score always moves, however much someone has played. | Implemented |
+| FR-613 | **No lucky starts:** every player's score starts from a typical value (2.0), so one early bullseye can't top the board. | Implemented |
+| FR-606 | The Scores screen shows **Today** by default, with an **All-time** toggle. Each row shows the combined score with the **Guessing Score** and **Clue Score** as components. | Implemented |
+| FR-614 | **Today** starts at 4:00 AM local time. Players with nothing today aren't ranked on Today's board. | Implemented |
+| FR-615 | **All-time** is a steady career score over every result, with the same lucky-start protection. | Implemented |
+| FR-616 | **Streak flame:** a player whose last 3 or more guesses in a row each earned 3 or 4 zone points shows 🔥 next to their name. Display only; no points. | Implemented |
+| FR-617 | The reveal shows each guess's total points and names any bonus earned (e.g. "+1 middle target", "+1 best guess 👑"). | Implemented |
+| FR-609 | The UI calls these simply **scores**. It doesn't explain, label, or mention averaging or weighting, or show how many events a score is based on; the math stays behind the scenes (FR-607). | Implemented |
+| FR-607 | Because players join and leave freely, scores are **averages, never totals**. Playing more clues doesn't raise a score; joining late or leaving early doesn't hurt one. | Implemented |
 | FR-608 | Scores update immediately after every guess. | Implemented |
 
 ## 7. Spectrum card deck
