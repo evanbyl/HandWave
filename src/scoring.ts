@@ -48,9 +48,41 @@ export interface GuessResult {
   total: number;
 }
 
+// ---------- per-state cache ----------
+// The app replaces GameState on every change, so results are computed once per
+// change instead of once per name or row on screen. The length check also
+// catches in-place edits (as the tests make).
+
+interface Derived {
+  turns: number;
+  guesses: number;
+  results: Map<string, GuessResult[]>;
+  streaks: Map<string, number>;
+}
+const cache = new WeakMap<GameState, Derived>();
+
+function derived(state: GameState): Derived {
+  const hit = cache.get(state);
+  if (hit && hit.turns === state.turns.length && hit.guesses === state.guesses.length) return hit;
+  const byTurn = new Map<string, Guess[]>();
+  for (const g of state.guesses) {
+    const list = byTurn.get(g.turnId);
+    if (list) list.push(g);
+    else byTurn.set(g.turnId, [g]);
+  }
+  const results = new Map<string, GuessResult[]>();
+  for (const t of state.turns) results.set(t.id, computeResults(t, byTurn.get(t.id) ?? []));
+  const d: Derived = { turns: state.turns.length, guesses: state.guesses.length, results, streaks: computeStreaks(results) };
+  cache.set(state, d);
+  return d;
+}
+
 /** Every guess on a clue with its bonuses applied (FR-610, FR-611). */
 export function guessResults(state: GameState, turn: Turn): GuessResult[] {
-  const guesses = state.guesses.filter((g) => g.turnId === turn.id);
+  return (derived(state).results.get(turn.id) ?? []).slice();
+}
+
+function computeResults(turn: Turn, guesses: Guess[]): GuessResult[] {
   const base = guesses.map((g) => {
     const zone = pointsFor(g.position, turn.target);
     return { guess: g, zone, middle: zone > 0 && isMiddle(turn.target) ? MIDDLE_BONUS : 0 };
@@ -81,8 +113,9 @@ export interface ScoreEvent {
 
 export function playerEvents(state: GameState, playerId: string): ScoreEvent[] {
   const events: ScoreEvent[] = [];
+  const all = derived(state).results;
   for (const turn of state.turns) {
-    const results = guessResults(state, turn);
+    const results = all.get(turn.id) ?? [];
     if (results.length === 0) continue;
     if (turn.creatorId === playerId) {
       const value = results.reduce((sum, r) => sum + r.zone + r.middle, 0) / results.length;
@@ -151,16 +184,29 @@ export function leaderboard(state: GameState, period: Period, now: number = Date
 
 /** Guesses in a row, most recent first, each with 3+ zone points (FR-616). */
 export function streak(state: GameState, playerId: string): number {
-  const turns = new Map(state.turns.map((t) => [t.id, t]));
-  const mine = state.guesses
-    .filter((g) => g.playerId === playerId && turns.has(g.turnId))
-    .sort((a, b) => b.createdAt - a.createdAt);
-  let n = 0;
-  for (const g of mine) {
-    if (pointsFor(g.position, turns.get(g.turnId)!.target) < STREAK_MIN_POINTS) break;
-    n++;
+  return derived(state).streaks.get(playerId) ?? 0;
+}
+
+function computeStreaks(results: Map<string, GuessResult[]>): Map<string, number> {
+  const byPlayer = new Map<string, GuessResult[]>();
+  for (const list of results.values()) {
+    for (const r of list) {
+      const mine = byPlayer.get(r.guess.playerId);
+      if (mine) mine.push(r);
+      else byPlayer.set(r.guess.playerId, [r]);
+    }
   }
-  return n;
+  const streaks = new Map<string, number>();
+  for (const [playerId, mine] of byPlayer) {
+    mine.sort((a, b) => b.guess.createdAt - a.guess.createdAt);
+    let n = 0;
+    for (const r of mine) {
+      if (r.zone < STREAK_MIN_POINTS) break;
+      n++;
+    }
+    streaks.set(playerId, n);
+  }
+  return streaks;
 }
 
 export function hasFlame(state: GameState, playerId: string): boolean {
