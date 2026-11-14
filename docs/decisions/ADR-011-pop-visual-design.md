@@ -1,6 +1,6 @@
 # ADR-011: "Pop" visual design
 
-Status: Accepted
+Status: Accepted (motion and button shape amended by ADR-012)
 Date: 2026-11-13
 
 ## Context

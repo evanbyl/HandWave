@@ -65,6 +65,7 @@ header {
   background: var(--violet); border: var(--line); box-shadow: var(--shadow-sm);
 }
 .who { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 1.15rem; }
+.nm { display: inline-flex; align-items: center; gap: 4px; }
 
 /* ---------- type ---------- */
 
@@ -94,20 +95,27 @@ button {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: transform .08s ease, box-shadow .08s ease;
+  /* Every button sits on a sticker shadow (ADR-012). Pressing (press.ts adds
+     .pressed) pushes it in instantly; releasing springs the shadow back. */
+  --lift: 3px;
+  box-shadow: var(--lift) var(--lift) 0 var(--ink);
+  transition: transform .36s var(--spring), box-shadow .36s var(--spring), background-color .2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
+button.pressed { transform: translate(var(--lift), var(--lift)); box-shadow: 0 0 0 var(--ink); transition-duration: 0s; }
 button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--violet); outline-offset: 3px; }
 button.primary {
   background: var(--violet);
   color: #FFFFFF;
   font: 800 1.2rem var(--display);
   letter-spacing: -0.01em;
-  box-shadow: 5px 5px 0 var(--ink);
+  --lift: 5px;
 }
-button.primary:active, .person:active, .row:active, .pass:active, .peek:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
 button.danger { background: var(--danger); color: #FFFFFF; }
 button.wide { width: 100%; margin: 6px 0; }
-.pass { min-height: 44px; padding: 6px 12px; font-size: 0.9rem; box-shadow: var(--shadow-sm); }
+.pass { min-height: 44px; padding: 6px 12px; font-size: 0.9rem; }
 .icon { flex: 0 0 auto; }
 
 footer {
@@ -120,7 +128,7 @@ footer {
   padding: 14px 20px calc(16px + env(safe-area-inset-bottom));
   background: linear-gradient(rgba(243, 241, 255, 0), var(--bg) 30%);
 }
-footer button { flex: 1; max-width: 300px; min-height: 60px; border-radius: 20px; }
+footer button { flex: 1; max-width: 300px; min-height: 60px; border-radius: 20px; --lift: 5px; }
 
 /* ---------- picker ---------- */
 
@@ -136,7 +144,7 @@ footer button { flex: 1; max-width: 300px; min-height: 60px; border-radius: 20px
   gap: 4px;
   padding: 12px 6px 10px;
   border-radius: 20px;
-  box-shadow: var(--shadow);
+  --lift: 4px;
   font-size: 0.95rem;
   line-height: 1.2;
 }
@@ -147,6 +155,7 @@ footer button { flex: 1; max-width: 300px; min-height: 60px; border-radius: 20px
 .returning { color: var(--muted); }
 .returning summary { padding: 10px 0; cursor: pointer; font-weight: 700; color: var(--violet); }
 .returning .row { margin-top: 8px; }
+.row.rejoin { justify-content: flex-start; gap: 8px; color: var(--ink); }
 
 .card { background: var(--surface); border: var(--line); border-radius: 22px; padding: 16px; }
 .step { display: flex; gap: 12px; align-items: flex-start; }
@@ -185,13 +194,13 @@ button.inset {
   min-height: 44px; min-width: 80px;
   padding: 0 14px;
   border-radius: 11px;
-  box-shadow: none;
   font-size: 1.05rem;
 }
 .label { color: var(--muted); font-weight: 700; font-size: 0.95rem; margin: 14px 0 6px; }
 .emojis { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px; }
 .emoji { font-size: 1.6rem; padding: 4px; min-height: 52px; border-radius: 14px; }
-.emoji.on { background: var(--sun); box-shadow: var(--shadow-sm); }
+/* The chosen emoji and selected tabs look pressed in. */
+.emoji.on, .tab.on { background: var(--sun); transform: translate(var(--lift), var(--lift)); box-shadow: 0 0 0 var(--ink); }
 
 /* ---------- lists ---------- */
 
@@ -203,7 +212,7 @@ button.inset {
   padding: 12px 14px;
   text-align: left;
   border-radius: 20px;
-  box-shadow: var(--shadow);
+  --lift: 4px;
 }
 .row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
 .row-main strong { font: 800 1.3rem var(--display); letter-spacing: -0.02em; }
@@ -235,12 +244,11 @@ button.inset {
 .top-card.first { background: var(--sun); }
 
 .links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 16px; }
-.links button { background: transparent; padding: 6px; font-size: 0.9rem; border-radius: 14px; }
+.links button { padding: 6px; font: 800 1rem var(--display); letter-spacing: -0.01em; border-radius: 14px; }
 
 .tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 4px; }
 .tabs.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.tab { padding: 8px 4px; font-size: 0.92rem; background: transparent; border-radius: 14px; }
-.tab.on { background: var(--sun); box-shadow: var(--shadow-sm); }
+.tab { padding: 8px 4px; font-size: 0.92rem; border-radius: 14px; }
 
 .score-row {
   display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 12px;
@@ -288,7 +296,7 @@ button.inset {
 
 .row-buttons { display: flex; gap: 10px; margin: 8px 0; }
 .row-buttons button { flex: 1; }
-.peek { box-shadow: var(--shadow-sm); user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+
 
 /* ---------- reveal ---------- */
 
@@ -319,7 +327,7 @@ button.inset {
   position: fixed;
   left: 50%;
   top: calc(14px + env(safe-area-inset-top));
-  z-index: 10;
+  z-index: 25; /* above screen transitions and How to play */
   transform: translateX(-50%);
   max-width: 90vw;
   padding: 12px 18px;
@@ -337,8 +345,7 @@ button.inset {
 footer:has(.howto-btn) { flex-direction: column; align-items: center; gap: 12px; }
 footer:has(.howto-btn) button { flex: none; width: 100%; }
 #app:has(.howto-btn) { padding-bottom: calc(200px + env(safe-area-inset-bottom)); }
-.howto-btn { background: var(--surface); font: 800 1.2rem var(--display); letter-spacing: -0.01em; box-shadow: 5px 5px 0 var(--ink); }
-.howto-btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+.howto-btn { background: var(--surface); font: 800 1.2rem var(--display); letter-spacing: -0.01em; }
 
 .howto-panel { position: fixed; inset: 0; z-index: 20; }
 /* The outline that grows from the button to the screen edges. */
@@ -381,12 +388,12 @@ footer:has(.howto-btn) button { flex: none; width: 100%; }
   height: 52px;
   padding: 0;
   border-radius: 50%;
-  box-shadow: var(--shadow-sm);
   transform: scale(0) rotate(-90deg);
   pointer-events: none;
   transition: transform .3s var(--glide);
 }
-.open .howto-close { transform: none; pointer-events: auto; transition: transform .5s var(--spring) .18s; }
+.open .howto-close { transform: none; pointer-events: auto; transition: transform .5s var(--spring) .18s, box-shadow .36s var(--spring); }
+.open .howto-close.pressed { transform: translate(var(--lift), var(--lift)); transition-duration: 0s; }
 .howto-body {
   position: absolute;
   left: 0;
@@ -410,8 +417,9 @@ footer:has(.howto-btn) button { flex: none; width: 100%; }
 .howto-body .num { flex-basis: 36px; height: 36px; font-size: 1.05rem; }
 body.howto-open { overflow: hidden; }
 
-/* ---------- Join Game transition (FR-208) ---------- */
+/* ---------- screen transitions (ADR-012) ---------- */
 
+/* Frozen copy of the outgoing screen; its pieces fly away. */
 .app-clone {
   position: fixed;
   left: 0;
@@ -425,7 +433,9 @@ body.howto-open { overflow: hidden; }
   padding: 0 20px;
   pointer-events: none;
 }
-.app-clone .enter { animation: none; }
+.app-clone, .app-clone * { animation: none !important; } /* never replays anything (NFR-110) */
+.app-clone footer { background: none; } /* the real footer already draws the fade */
+/* The white field of the Join transition (FR-208). */
 .field-ghost {
   position: fixed;
   z-index: 16;
@@ -434,33 +444,17 @@ body.howto-open { overflow: hidden; }
   pointer-events: none;
   visibility: hidden;
 }
-.join-ghost {
-  position: fixed;
-  z-index: 17;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  white-space: nowrap;
-  background: var(--violet);
-  color: #FFFFFF;
-  border: var(--line);
-  font-family: var(--display);
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  pointer-events: none;
+/* Stand-ins that carry an element from one screen to the next. */
+.hero-ghost { position: fixed; z-index: 17; margin: 0; padding: 0; box-sizing: border-box; pointer-events: none; }
+.hero-box {
+  display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); /* one cell the size of the box */
+  place-items: center; overflow: hidden; white-space: nowrap; border-style: solid;
 }
-.join-ghost .g { display: inline-block; overflow: visible; }
-.join-ghost { font-size: 1.2rem; } /* measured at Join Game size */
-.no-enter .enter { animation: none; }
+.hero-label { grid-area: 1 / 1; display: inline-flex; align-items: center; white-space: pre; line-height: 1.2; }
+.hero-label .tail { display: inline-block; white-space: pre; }
 
 /* ---------- motion (ADR-011) ---------- */
 
-@keyframes pop-in {
-  0% { opacity: 0; transform: translateY(10px) scale(.9) rotate(-2deg); }
-  60% { opacity: 1; transform: translateY(-2px) scale(1.04) rotate(1deg); }
-  100% { opacity: 1; transform: none; }
-}
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, -20px) scale(.9); } to { opacity: 1; transform: translateX(-50%); } }
 @keyframes flicker { 0%, 100% { transform: scale(1) rotate(-3deg); } 50% { transform: scale(1.15) rotate(4deg); } }
 @keyframes zones-in { 0% { opacity: 0; transform: scale(.2); } 70% { opacity: 1; transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
@@ -469,14 +463,19 @@ body.howto-open { overflow: hidden; }
 @keyframes sticker { 0%, 50% { opacity: 0; scale: .4; } 80% { opacity: 1; scale: 1.12; } 100% { opacity: 1; scale: 1; } }
 @keyframes burst { 0%, 30% { opacity: 0; transform: translate(0, 0) scale(.4); } 40% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(220deg); } }
 
-.enter { animation: pop-in .5s var(--spring) both; animation-delay: calc(var(--i, 0) * 55ms); }
 .flame { transform-origin: 50% 90%; animation: flicker .9s ease-in-out infinite; }
 
+/* The reveal celebrates once the screen has landed (NFR-110); until then the
+   pieces that pop in are held back. */
+[data-celebrate]:not(.celebrate) .zones,
+[data-celebrate]:not(.celebrate) .badge,
+[data-celebrate]:not(.celebrate) .chip { visibility: hidden; }
 .celebrate .zones { transform-box: view-box; transform-origin: 150px 155px; animation: zones-in .45s var(--spring) .1s both; }
 .celebrate .needle { transform-box: view-box; transform-origin: 150px 155px; animation: thunk .35s ease-out both; }
 .celebrate .badge { animation: badge-pop .9s var(--spring) both; }
 .celebrate .chip { animation: sticker .9s var(--spring) both; animation-delay: calc(.35s + var(--i, 0) * 120ms); }
-.bit { position: absolute; width: 11px; height: 11px; margin: -6px; border: var(--line); border-radius: 3px; opacity: 0; animation: burst 1s cubic-bezier(.2, .7, .3, 1) both; }
+.bit { position: absolute; width: 11px; height: 11px; margin: -6px; border: var(--line); border-radius: 3px; opacity: 0; }
+.celebrate .bit { animation: burst 1s cubic-bezier(.2, .7, .3, 1) both; }
 .bit.b1 { --dx: -64px; --dy: -42px; background: var(--sun); }
 .bit.b2 { --dx: 58px; --dy: -46px; background: var(--mint); border-radius: 50%; }
 .bit.b3 { --dx: -66px; --dy: 26px; background: var(--tangerine); }
