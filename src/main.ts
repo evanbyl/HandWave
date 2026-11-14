@@ -25,12 +25,33 @@ import type { Card, GameState, Turn } from './model';
 import { type Period, clueScore, guessResults, hasFlame, leaderboard } from './scoring';
 import { load, save } from './storage';
 
-registerSW({ immediate: true });
+// NFR-405: a new version waits until the picker, where nothing is in progress.
+let updateReady = false;
+let leavingForUpdate = false;
+const updateSW = registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    updateReady = true;
+    applyUpdateIfSafe();
+  },
+});
+function applyUpdateIfSafe(): void {
+  if (!updateReady || leavingForUpdate || view.name !== 'picker') return;
+  leavingForUpdate = true; // skip the leave confirmation for our own reload
+  void updateSW(true);
+}
+
+// FR-907: ask the browser for its native "Leave this page?" confirmation.
+window.addEventListener('beforeunload', (e) => {
+  if (leavingForUpdate) return;
+  e.preventDefault();
+  e.returnValue = ''; // older browsers need this to show the dialog
+});
 
 type Tab = 'waiting' | 'answered' | 'created';
 
 type View =
-  | { name: 'picker'; confirmExit?: boolean }
+  | { name: 'picker' }
   | { name: 'join'; emoji: string; nameText: string; error?: string }
   | { name: 'home' }
   | { name: 'create'; card: Card; target: number; clue: string; error?: string }
@@ -148,16 +169,10 @@ function ensureGuard(): void {
 history.replaceState({ hw: 'base' }, '');
 ensureGuard();
 window.addEventListener('popstate', () => {
-  // FR-903: on the picker, Back asks first. The spare entry isn't restored,
-  // so a second Back leaves; Stay (or any tap) restores it.
-  if (view.name === 'picker') {
-    // Already asked: keep going back past any older HandWave entries (e.g. from reloads).
-    if (view.confirmExit) return history.back();
-    view = { name: 'picker', confirmExit: true };
-    render();
-    window.scrollTo(0, 0);
-    return;
-  }
+  // FR-903: on the picker, Back leaves the app. Keep going back (past any older
+  // HandWave entries left by reloads); the browser's native leave
+  // confirmation (FR-907) gives the player a chance to stay.
+  if (view.name === 'picker') return history.back();
   back();
   ensureGuard();
 });
@@ -207,7 +222,7 @@ function layout(hint: string, main: string, footer = ''): string {
 
 // ---------- screens ----------
 
-function renderPicker(v: Extract<View, { name: 'picker' }>): string {
+function renderPicker(): string {
   const active = game.players.filter((p) => p.active);
   const away = game.players.filter((p) => !p.active);
   const grid = active
@@ -220,15 +235,7 @@ function renderPicker(v: Extract<View, { name: 'picker' }>): string {
     : '';
   return layout(
     '',
-    `${
-      v.confirmExit
-        ? `<div class="confirm exit" role="alert">
-             <p>Leave HandWave?</p>
-             <p class="tip">Your game is saved. Press Back again to leave.</p>
-             <div class="row-buttons"><button class="primary" data-act="stay">Stay</button></div>
-           </div>`
-        : ''
-    }<h1>Who are you?</h1>${active.length ? `<div class="people">${grid}</div>` : ''}${returning}
+    `<h1>Who are you?</h1>${active.length ? `<div class="people">${grid}</div>` : ''}${returning}
      <section class="howto"><h2>How to play</h2>
      <p>One phone gets passed around. Whoever’s holding it can:</p>
      <ul>
@@ -463,7 +470,7 @@ function render(): void {
     return render();
   }
   switch (v.name) {
-    case 'picker': app.innerHTML = renderPicker(v); break;
+    case 'picker': app.innerHTML = renderPicker(); break;
     case 'join': app.innerHTML = renderJoin(v); break;
     case 'home': app.innerHTML = renderHome(); break;
     case 'create': app.innerHTML = renderCreate(v); break;
@@ -475,6 +482,7 @@ function render(): void {
     case 'menu': app.innerHTML = renderMenu(v); break;
   }
   wire();
+  applyUpdateIfSafe();
 }
 
 // ---------- input ----------
@@ -550,7 +558,6 @@ function act(action: string, id: string): void {
   const v = view;
   switch (action) {
     case 'back': back(); break;
-    case 'stay': go({ name: 'picker' }); break;
     case 'pass': passPhone(); break;
     case 'pick': me = id; go({ name: 'home' }); break;
     case 'rejoin': commit(rejoinPlayer(game, id)); me = id; go({ name: 'home' }); break;

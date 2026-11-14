@@ -38,6 +38,7 @@ Quality bars every feature must meet. IDs are stable; status values match the fu
 | NFR-402 | Opens to the "Who are you?" picker in under 2 seconds on a mid-range phone. | Accepted |
 | NFR-403 | Dragging the dial needle follows the finger with no visible lag (target 60 frames per second). | Accepted |
 | NFR-404 | Installable to the phone's home screen and opens full-screen like an app. | Implemented |
+| NFR-405 | **Updates never interrupt play.** A new version downloads in the background and is applied only when the phone is on the "Who are you?" picker, where nothing is in progress, without a leave confirmation. | Implemented |
 
 ## Compatibility
 
