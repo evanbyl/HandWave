@@ -158,6 +158,7 @@ function passPhone(): void {
 
 /** The on-screen Back/Cancel/Skip/Done buttons and the browser's Back all land here. */
 function back(): void {
+  if (howto) return closeHowto(); // FR-901, FR-206
   if (view.name === 'picker') return; // FR-903: stay in the app
   if (view.name === 'home') return passPhone(); // FR-902
   let prev = stack.pop();
@@ -180,6 +181,11 @@ function ensureGuard(): void {
 }
 history.replaceState({ hw: 'base' }, '');
 window.addEventListener('popstate', () => {
+  if (howto) {
+    closeHowto(); // FR-206: Back reverses How to play
+    ensureGuard();
+    return;
+  }
   // FR-903: on the picker, Back leaves the app. Keep going back (past any older
   // HandWave entries left by reloads); the browser's native leave
   // confirmation (FR-907) gives the player a chance to stay.
@@ -235,6 +241,93 @@ function layout(hint: string, main: string, footer = ''): string {
   return `${header}${hint ? `<p class="hint">${hint}</p>` : ''}<main>${main}</main>${footer ? `<footer>${footer}</footer>` : ''}`;
 }
 
+// ---------- How to play panel (FR-206) ----------
+// The white button grows into a full-screen panel: its outline expands, the
+// label glides up into the header, and the steps slide up from below.
+// Closing plays it backwards into the button.
+
+const HOWTO_MS = 480;
+let howto: HTMLElement | null = null;
+let howtoClosing = false;
+
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function setRect(el: HTMLElement, r: { top: number; left: number; width: number; height: number }): void {
+  el.style.top = `${r.top}px`;
+  el.style.left = `${r.left}px`;
+  el.style.width = `${r.width}px`;
+  el.style.height = `${r.height}px`;
+}
+
+function howtoButton(): HTMLElement | null {
+  return app.querySelector<HTMLElement>('[data-act="howto"]');
+}
+
+function openHowto(): void {
+  const btn = howtoButton();
+  if (howto || !btn) return;
+  const panel = document.createElement('div');
+  panel.className = 'howto-panel';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
+  panel.setAttribute('aria-labelledby', 'howto-title');
+  panel.innerHTML = `
+    <h2 class="howto-title" id="howto-title">How to play</h2>
+    <button class="howto-close" aria-label="Close How to play">${icons.close}</button>
+    <div class="howto-body">
+      <p class="howto-lead">One phone gets passed around. Whoever’s holding it can:</p>
+      <div class="step"><span class="num sun">1</span><p><strong>Write a clue.</strong> You get a spectrum, like <em>Cold ↔ Hot</em>,
+        and a secret target on it. Write a clue that guides the guessers to the target.</p></div>
+      <div class="step"><span class="num mint">2</span><p><strong>Guess.</strong> Drag the needle to where you think someone
+        else’s clue belongs, then see the target and how everyone scored.</p></div>
+      <div class="step"><span class="num peach">3</span><p><strong>Pass the phone.</strong> Do as many as you like, in any order.
+        No talking, no taking turns. Join or leave anytime.</p></div>
+    </div>`;
+  setRect(panel, btn.getBoundingClientRect());
+  document.body.appendChild(panel);
+  btn.style.visibility = 'hidden';
+  document.body.classList.add('howto-open');
+  howto = panel;
+  panel.querySelector('.howto-close')!.addEventListener('click', () => {
+    closeHowto();
+    ensureGuard();
+  });
+  void panel.offsetWidth; // start from the button's box
+  panel.classList.add('open');
+  setRect(panel, { top: 0, left: 0, width: window.innerWidth, height: window.innerHeight });
+  window.setTimeout(() => panel.querySelector<HTMLElement>('.howto-close')?.focus(), reducedMotion() ? 0 : HOWTO_MS);
+}
+
+function closeHowto(): void {
+  const panel = howto;
+  if (!panel || howtoClosing) return;
+  howtoClosing = true;
+  const btn = howtoButton();
+  panel.classList.remove('open');
+  if (btn) setRect(panel, btn.getBoundingClientRect());
+  window.setTimeout(() => {
+    panel.remove();
+    howto = null;
+    howtoClosing = false;
+    document.body.classList.remove('howto-open');
+    const b = howtoButton();
+    if (b) {
+      b.style.visibility = '';
+      b.focus();
+    }
+  }, reducedMotion() ? 0 : HOWTO_MS);
+}
+
+window.addEventListener('resize', () => {
+  if (howto && !howtoClosing) setRect(howto, { top: 0, left: 0, width: window.innerWidth, height: window.innerHeight });
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && howto) {
+    closeHowto();
+    ensureGuard();
+  }
+});
+
 // ---------- screens ----------
 
 function renderPicker(): string {
@@ -254,16 +347,9 @@ function renderPicker(): string {
   return layout(
     '',
     `<span class="deco sun" aria-hidden="true"></span><span class="deco mint" aria-hidden="true"></span>
-     <h1 class="hero">Who are you?</h1>${active.length ? `<div class="people">${grid}</div>` : ''}${returning}
-     <section class="howto card"><h2>How to play</h2>
-     <p>One phone gets passed around. Whoever’s holding it can:</p>
-     <div class="step"><span class="num sun">1</span><p><strong>Write a clue.</strong> You get a spectrum, like <em>Cold ↔ Hot</em>, and a secret target on it.
-       Write a clue that guides the guessers to the target.</p></div>
-     <div class="step"><span class="num mint">2</span><p><strong>Guess.</strong> Drag the needle to where you think someone else’s clue belongs,
-       then see the target and how everyone scored.</p></div>
-     <p>Do as many as you like, in any order, then pass the phone. No talking, no taking turns.
-     Join or leave anytime.</p></section>`,
-    `<button class="primary" data-act="new-player">Join Game</button>`,
+     <h1 class="hero">Who are you?</h1>${active.length ? `<div class="people">${grid}</div>` : ''}${returning}`,
+    `<button class="howto-btn" data-act="howto" aria-haspopup="dialog">How to play</button>
+     <button class="primary" data-act="new-player">Join Game</button>`,
   );
 }
 
@@ -587,6 +673,7 @@ function act(action: string, id: string): void {
   const v = view;
   switch (action) {
     case 'back': back(); break;
+    case 'howto': openHowto(); break;
     case 'pass': passPhone(); break;
     case 'pick': me = id; go({ name: 'home' }); break;
     case 'rejoin': commit(rejoinPlayer(game, id)); me = id; go({ name: 'home' }); break;
