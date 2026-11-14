@@ -1,6 +1,6 @@
 # ADR-012: Screen transitions and button feel
 
-Status: Accepted
+Status: Accepted (button shadows amended by ADR-013)
 Date: 2026-11-13
 Amends: ADR-011 (motion section)
 
