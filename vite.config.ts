@@ -9,12 +9,14 @@ export default defineConfig({
       // Updates are applied at the next hand-off, not mid-screen (NFR-405).
       registerType: 'prompt',
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
+      // Precache the bundled fonts too, so the game looks right offline (ADR-011, NFR-401).
+      workbox: { globPatterns: ['**/*.{js,css,html,svg,png,woff2}'] },
       manifest: {
         name: 'HandWave',
         short_name: 'HandWave',
         description: 'A silent, phone-passing spectrum guessing game.',
-        theme_color: '#1b1340',
-        background_color: '#1b1340',
+        theme_color: '#F3F1FF',
+        background_color: '#F3F1FF',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '.',

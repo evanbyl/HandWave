@@ -67,7 +67,8 @@ export function dialSvg(opts: DialOptions): string {
     <g class="zones">${opts.target !== undefined ? zones(opts.target) : ''}</g>
     ${markers}
     ${opts.needle !== undefined ? needle(opts.needle, 'needle') : ''}
-    <circle class="hub" cx="${CX}" cy="${CY}" r="9"/>
+    <circle class="hub" cx="${CX}" cy="${CY}" r="11"/>
+    <circle class="hub-dot" cx="${CX}" cy="${CY}" r="4"/>
   </svg>`;
 }
 
