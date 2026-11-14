@@ -237,3 +237,9 @@ button.icon { flex: 0 0 52px; padding: 0; font-size: 1.2rem; background: var(--p
 html, body { overscroll-behavior-y: none; }
 .confirm.exit { margin: 8px 0 4px; }
 .confirm.exit .tip { margin: 4px 0 0; font-weight: 400; }
+
+/* Scoring v2 (ADR-010) */
+.tabs.two { grid-template-columns: repeat(2, 1fr); }
+.bonuses { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: -4px 0 8px; }
+.chip { padding: 4px 10px; border-radius: 999px; background: var(--panel-2); color: var(--accent); font-weight: 700; font-size: 0.9rem; }
+.flame { font-size: 0.95em; }

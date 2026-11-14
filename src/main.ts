@@ -22,7 +22,7 @@ import {
   waitingFor,
 } from './game';
 import type { Card, GameState, Turn } from './model';
-import { clueScore, leaderboard, pointsFor } from './scoring';
+import { type Period, clueScore, guessResults, hasFlame, leaderboard } from './scoring';
 import { load, save } from './storage';
 
 registerSW({ immediate: true });
@@ -37,7 +37,7 @@ type View =
   | { name: 'answer'; turnId: string; pos: number }
   | { name: 'reveal'; turnId: string; justAnswered: boolean }
   | { name: 'turns'; tab: Tab; confirmDelete?: string }
-  | { name: 'board' }
+  | { name: 'board'; period: Period }
   | { name: 'cards'; left: string; right: string; error?: string }
   | { name: 'menu'; confirmReset: boolean };
 
@@ -70,7 +70,8 @@ function player(id: string) {
 
 function who(id: string): string {
   const p = player(id);
-  return p ? `${esc(p.emoji)} ${esc(p.name)}` : '❔ Unknown';
+  if (!p) return '❔ Unknown';
+  return `${esc(p.emoji)} ${esc(p.name)}${hasFlame(game, id) ? ' <span class="flame" title="On a streak">🔥</span>' : ''}`;
 }
 
 function deck(): Card[] {
@@ -258,13 +259,13 @@ function renderJoin(v: Extract<View, { name: 'join' }>): string {
 
 function renderHome(): string {
   const waiting = waitingFor(game, me!);
-  const top = leaderboard(game).filter((r) => r.combined !== null).slice(0, 3);
+  const top = leaderboard(game, 'today').filter((r) => r.combined !== null).slice(0, 4); // FR-202: top four today
   // FR-202: empty sections are hidden, not explained.
   const toGuess = waiting.length
     ? `<h2>Clues to guess (${waiting.length})</h2><div class="list">${waiting.map((t) => turnRow(t, 'Guess ›')).join('')}</div>`
     : '';
   const board = top.length
-    ? `<h2>Top scores</h2><div class="list">${top
+    ? `<h2>Top scores today</h2><div class="list">${top
         .map((r, i) => `<div class="mini"><span>${i + 1}. ${who(r.playerId)}</span><strong>${fmt(r.combined)}</strong></div>`)
         .join('')}</div>`
     : '';
@@ -313,20 +314,26 @@ function renderAnswer(v: Extract<View, { name: 'answer' }>, t: Turn): string {
 }
 
 function renderReveal(v: Extract<View, { name: 'reveal' }>, t: Turn): string {
-  const guesses = game.guesses
-    .filter((g) => g.turnId === t.id)
-    .map((g) => ({ ...g, pts: pointsFor(g.position, t.target) }))
-    .sort((a, b) => b.pts - a.pts);
-  const mine = guesses.find((g) => g.playerId === me);
-  const others = guesses.filter((g) => g.playerId !== me).map((g) => ({ position: g.position, label: esc(player(g.playerId)?.emoji ?? '❔') }));
+  const results = guessResults(game, t).sort((a, b) => b.total - a.total);
+  const mine = results.find((r) => r.guess.playerId === me);
+  const others = results
+    .filter((r) => r.guess.playerId !== me)
+    .map((r) => ({ position: r.guess.position, label: esc(player(r.guess.playerId)?.emoji ?? '❔') }));
   const isCreator = t.creatorId === me;
+  // FR-617: name the bonuses so players learn them by seeing them.
+  const bonuses = mine
+    ? [mine.middle ? `+${mine.middle} middle target` : '', mine.best ? `+${mine.best} best guess 👑` : ''].filter(Boolean)
+    : [];
   const banner = mine
-    ? `<p class="score s${mine.pts}">You scored <strong>${mine.pts}</strong> / 4</p>`
+    ? `<p class="score s${mine.zone}">You scored <strong>${mine.total}</strong></p>
+       ${bonuses.length ? `<p class="bonuses">${bonuses.map((b) => `<span class="chip">${b}</span>`).join('')}</p>` : ''}`
     : isCreator
-      ? `<p class="score">Your Clue Score <strong>${fmt(clueScore(game, t))}</strong> / 4</p>`
+      ? `<p class="score">Your Clue Score <strong>${fmt(clueScore(game, t))}</strong></p>`
       : '';
-  const rows = guesses.length
-    ? guesses.map((g) => `<div class="mini"><span>${who(g.playerId)}</span><strong>${g.pts}</strong></div>`).join('')
+  const rows = results.length
+    ? results
+        .map((r) => `<div class="mini"><span>${who(r.guess.playerId)}${r.best ? ' 👑' : ''}</span><strong>${r.total}</strong></div>`)
+        .join('')
     : `<p class="empty">No guesses yet. Check back later.</p>`;
   const next = waitingFor(game, me!).length > 0; // FR-408
   return layout(
@@ -334,7 +341,7 @@ function renderReveal(v: Extract<View, { name: 'reveal' }>, t: Turn): string {
     `<p class="by">Clue from ${who(t.creatorId)}</p>
      <h1 class="clue">“${esc(t.clue)}”</h1>
      ${cardEnds(t.left, t.right)}
-     <div class="dial-host" id="dial">${dialSvg({ target: t.target, needle: mine?.position, markers: others })}</div>
+     <div class="dial-host" id="dial">${dialSvg({ target: t.target, needle: mine?.guess.position, markers: others })}</div>
      ${banner}
      <h2>Scores</h2><div class="list">${rows}</div>`,
     `<button ${next ? '' : 'class="primary"'} data-act="back">Done</button>${next ? '<button class="primary" data-act="next-clue">Next clue ›</button>' : ''}`,
@@ -353,8 +360,8 @@ function renderTurns(v: Extract<View, { name: 'turns' }>): string {
       const c = clueScore(game, t);
       return c === null ? 'No guesses yet' : `${fmt(c)} pts`;
     }
-    const g = game.guesses.find((x) => x.turnId === t.id && x.playerId === me)!;
-    return `${pointsFor(g.position, t.target)} pts`;
+    const mine = guessResults(game, t).find((r) => r.guess.playerId === me)!;
+    return `${mine.total} pts`;
   };
   const row = (t: Turn) => {
     if (v.tab !== 'created') return turnRow(t, status(t));
@@ -380,23 +387,30 @@ function renderTurns(v: Extract<View, { name: 'turns' }>): string {
   );
 }
 
-function renderBoard(): string {
-  const ranked = leaderboard(game);
+function periodTab(id: Period, label: string): string {
+  const on = view.name === 'board' && view.period === id;
+  return `<button class="tab ${on ? 'on' : ''}" data-act="period" data-id="${id}" aria-pressed="${on}">${label}</button>`;
+}
+
+function renderBoard(v: Extract<View, { name: 'board' }>): string {
+  const ranked = leaderboard(game, v.period);
   const rows = ranked
     .map((r) => {
       const rank = r.combined === null ? '–' : ranked.findIndex((x) => x.combined === r.combined) + 1;
       const p = player(r.playerId)!;
       return `<div class="score-row ${p.active ? '' : 'away'}">
         <span class="rank">${rank}</span>
-        <span class="name">${who(r.playerId)}${p.active ? '' : ' <small>(left)</small>'}
-          <small>Guessing Score ${fmt(r.guessAverage)} · Clue Score ${fmt(r.clueAverage)}</small></span>
+        <span class="name"><span>${who(r.playerId)}${p.active ? '' : ' <small>(left)</small>'}</span>
+          <small>Guessing Score ${fmt(r.guessing)} · Clue Score ${fmt(r.clues)}</small></span>
         <strong>${fmt(r.combined)}</strong>
       </div>`;
     })
     .join('');
   return layout(
-    'Scores are out of 4. Join or leave anytime.',
-    `<h1>Scores</h1><div class="list">${rows || '<p class="empty">No players yet.</p>'}</div>`,
+    v.period === 'today' ? 'Today’s scores. Tap All-time for the long run.' : 'Everyone’s scores across every game.',
+    `<h1>Scores</h1>
+     <div class="tabs two">${periodTab('today', 'Today')}${periodTab('all', 'All-time')}</div>
+     <div class="list">${rows || '<p class="empty">No players yet.</p>'}</div>`,
     `<button class="primary" data-act="back">Back</button>`,
   );
 }
@@ -456,7 +470,7 @@ function render(): void {
     case 'answer': app.innerHTML = renderAnswer(v, findTurn(v.turnId)!); break;
     case 'reveal': app.innerHTML = renderReveal(v, findTurn(v.turnId)!); break;
     case 'turns': app.innerHTML = renderTurns(v); break;
-    case 'board': app.innerHTML = renderBoard(); break;
+    case 'board': app.innerHTML = renderBoard(v); break;
     case 'cards': app.innerHTML = renderCards(v); break;
     case 'menu': app.innerHTML = renderMenu(v); break;
   }
@@ -603,7 +617,8 @@ function act(action: string, id: string): void {
         go({ ...v, confirmDelete: undefined }, true);
       }
       break;
-    case 'board': go({ name: 'board' }); break;
+    case 'board': go({ name: 'board', period: 'today' }); break;
+    case 'period': go({ name: 'board', period: id as Period }, true); break;
     case 'cards': go({ name: 'cards', left: '', right: '' }); break;
     case 'add-card':
       if (v.name === 'cards') {
