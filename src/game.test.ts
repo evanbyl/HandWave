@@ -10,6 +10,8 @@ import {
   submitGuess,
   waitingFor,
   addCustomCard,
+  EMOJIS,
+  takenEmojis,
 } from './game';
 import { emptyState } from './model';
 
@@ -25,6 +27,27 @@ describe('players (FR-101–FR-105)', () => {
   it('rejects a duplicate active name + emoji', () => {
     const { s } = twoPlayers();
     expect(() => joinPlayer(s, ' ann ', '🦊')).toThrow(RuleError);
+  });
+
+  it('rejects an emoji another player already has (FR-107)', () => {
+    const { s } = twoPlayers();
+    expect(() => joinPlayer(s, 'Cy', '🦊')).toThrow(RuleError);
+  });
+
+  it('keeps a departed player\'s emoji reserved, and lets them rejoin with it (FR-107)', () => {
+    const { s, ann } = twoPlayers();
+    const left = leavePlayer(s, ann);
+    expect(() => joinPlayer(left, 'Cy', '🦊')).toThrow(RuleError);
+    expect(joinPlayer(left, 'Ann', '🦊').playerId).toBe(ann);
+  });
+
+  it('frees departed players\' emojis only when every emoji is taken (FR-107)', () => {
+    let s = emptyState();
+    EMOJIS.forEach((e, i) => (s = joinPlayer(s, `P${i}`, e).state));
+    const first = s.players[0];
+    s = leavePlayer(s, first.id);
+    expect(takenEmojis(s).has(first.emoji)).toBe(false);
+    expect(joinPlayer(s, 'New', first.emoji).state.players).toHaveLength(EMOJIS.length + 1);
   });
 
   it('allows the same name with a different emoji', () => {

@@ -203,6 +203,8 @@ button.inset {
 .label { color: var(--muted); font-weight: 700; font-size: 0.95rem; margin: 14px 0 6px; }
 .emojis { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px; }
 .emoji { font-size: 1.6rem; padding: 4px; min-height: 52px; border-radius: 14px; }
+/* Taken by another player (FR-107): flat, faded, not tappable. */
+.emoji:disabled { opacity: 0.3; box-shadow: none; border-style: dashed; cursor: not-allowed; filter: grayscale(1); }
 /* The chosen emoji and selected tabs look pressed in. */
 .emoji.on, .tab.on { background: var(--sun); transform: translate(var(--lift), var(--lift)); box-shadow: 0 0 0 var(--ink); }
 

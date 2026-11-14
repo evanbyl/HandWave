@@ -8,7 +8,25 @@ function sameIdentity(a: { name: string; emoji: string }, b: { name: string; emo
   return a.name.trim().toLowerCase() === b.name.trim().toLowerCase() && a.emoji === b.emoji;
 }
 
-/** Join, or rejoin if this name + emoji already exists (FR-102, FR-103, FR-105). */
+/** The emojis players can choose from (FR-101). */
+export const EMOJIS = [
+  '🦊', '🐢', '🐙', '🐝', '🦉', '🐸', '🦄', '🐳', '🦖', '🐧', '🐼', '🦁',
+  '🐯', '🐨', '🦩', '🦔', '🐌', '🦀', '🌵', '🍄', '🌻', '🍉', '🍩', '🌮',
+  '🚀', '🎸', '⚡', '🔥', '🌈', '⭐', '🎲', '🧩',
+];
+
+/**
+ * Emojis nobody new can pick (FR-107): every player's, including players who
+ * left, so they can rejoin as themselves. If that would leave no emoji free,
+ * only players still in the game keep theirs.
+ */
+export function takenEmojis(state: GameState): Set<string> {
+  const all = new Set(state.players.map((p) => p.emoji));
+  if (EMOJIS.some((e) => !all.has(e))) return all;
+  return new Set(state.players.filter((p) => p.active).map((p) => p.emoji));
+}
+
+/** Join, or rejoin if this name + emoji already exists (FR-102, FR-103, FR-105, FR-107). */
 export function joinPlayer(state: GameState, name: string, emoji: string): { state: GameState; playerId: string } {
   const clean = name.trim();
   if (!clean) throw new RuleError('Enter a name.');
@@ -21,6 +39,7 @@ export function joinPlayer(state: GameState, name: string, emoji: string): { sta
       playerId: existing.id,
     };
   }
+  if (takenEmojis(state).has(emoji)) throw new RuleError('Someone already has that emoji. Pick another.');
   const player = { id: newId(), name: clean, emoji, active: true, joinedAt: Date.now() };
   return { state: { ...state, players: [...state.players, player] }, playerId: player.id };
 }

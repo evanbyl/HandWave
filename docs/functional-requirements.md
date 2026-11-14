@@ -21,11 +21,12 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 | ID | Requirement | Status |
 |---|---|---|
 | FR-101 | A player is identified by a **name and an emoji**. No passwords or accounts. | Implemented |
-| FR-102 | Anyone can **join at any time** by entering a name and choosing an emoji in a single step. An emoji not used by any active player is **pre-selected**, so typing a name and pressing Join is enough. | Implemented |
+| FR-102 | Anyone can **join at any time** by entering a name and choosing an emoji in a single step. A free emoji is **pre-selected**, so typing a name and pressing Join is enough. | Implemented |
 | FR-103 | Each player's name + emoji combination must be unique, so players can spot themselves at a glance. | Implemented |
 | FR-104 | A player can **leave at any time**. Leaving hides them from the "Who are you?" picker but keeps their clues, guesses, and scores. | Implemented |
 | FR-105 | A player who left can **rejoin** and pick up their existing history and scores. | Implemented |
 | FR-106 | The game supports any number of players from 1 upward. No minimum player count is enforced. | Implemented |
+| FR-107 | **Emojis are one per player.** An emoji another player already has, including a player who left (so they can rejoin as themselves), can't be picked: it shows faded and can't be tapped, and the rules reject it. If every emoji is taken, emojis of players who left become available again. | Implemented |
 
 ## 2. Hand-off and first screen
 
