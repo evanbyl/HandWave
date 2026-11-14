@@ -299,7 +299,7 @@ function openHowto(): void {
       <div class="step"><span class="num mint">2</span><p><strong>Guess.</strong> Drag the needle to where you think someone
         else’s clue belongs, then see the target and how everyone scored.</p></div>
       <div class="step"><span class="num peach">3</span><p><strong>Pass the phone.</strong> Do as many as you like, in any order.
-        No talking, no taking turns. Join or leave anytime.</p></div>
+        No talking needed, and no fixed turn order. Join or leave anytime.</p></div>
     </div>
     </div>`;
   setBox(panel, btn.getBoundingClientRect());
