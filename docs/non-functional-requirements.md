@@ -14,7 +14,7 @@ Quality bars every feature must meet. IDs are stable; status values match the fu
 | NFR-106 | Text and controls meet WCAG 2.1 AA color contrast (ADR-011 tokens are chosen to pass). | Accepted |
 | NFR-107 | Every dial position can also be set by an accessible alternative to dragging (e.g. step buttons or a keyboard). | Implemented |
 | NFR-108 | **Reduced motion:** when the phone asks for reduced motion, the app shows no animation (ADR-011). | Implemented |
-| NFR-109 | **One visual language:** colors, type, shapes, icons, and motion follow ADR-011. Emoji appear only as player avatars. | Implemented |
+| NFR-109 | **One visual language:** colors, type, shapes, icons, and motion follow ADR-011. Emoji appear only as player avatars. The decorative sun circle and mint square sit in a fixed backdrop behind every screen and never move with screen transitions. | Implemented |
 
 ## Privacy and secrecy
 
