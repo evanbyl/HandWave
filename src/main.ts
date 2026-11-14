@@ -259,7 +259,10 @@ function renderJoin(v: Extract<View, { name: 'join' }>): string {
 
 function renderHome(): string {
   const waiting = waitingFor(game, me!);
-  const top = leaderboard(game, 'today').filter((r) => r.combined !== null).slice(0, 4); // FR-202: top four today
+  // FR-202: today's top four active players; players who left are skipped.
+  const top = leaderboard(game, 'today')
+    .filter((r) => r.combined !== null && player(r.playerId)?.active)
+    .slice(0, 4);
   // FR-202: empty sections are hidden, not explained.
   const toGuess = waiting.length
     ? `<h2>Clues to guess (${waiting.length})</h2><div class="list">${waiting.map((t) => turnRow(t, 'Guess ›')).join('')}</div>`
