@@ -76,8 +76,6 @@ const EMOJIS = [
   '🚀', '🎸', '⚡', '🔥', '🌈', '⭐', '🎲', '🧩',
 ];
 
-const ORDINALS = ['1st', '2nd', '3rd', '4th'];
-
 const app = document.getElementById('app')!;
 let game: GameState = load();
 let me: string | null = null;
@@ -470,10 +468,10 @@ function renderHome(): string {
     ? `<h2>Clues to guess <span class="count">${waiting.length}</span></h2><div class="list">${waiting.map((t) => turnRow(t, null)).join('')}</div>`
     : '';
   const board = top.length
-    ? `<h2>Top scores today</h2><div class="tops">${top
+    ? `<h2>Top scores today</h2><div class="list tops">${top
         .map(
           (r, i) =>
-            `<div class="top-card${i === 0 ? ' first' : ''}"><span>${ORDINALS[i]} · ${who(r.playerId)}</span><strong>${fmt(r.combined)}</strong></div>`,
+            `<div class="mini top-row${i === 0 ? ' first' : ''}"><span><span class="rank">${i + 1}</span>${who(r.playerId)}</span><strong>${fmt(r.combined)}</strong></div>`,
         )
         .join('')}</div>`
     : '';
