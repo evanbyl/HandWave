@@ -10,6 +10,7 @@ import { registerSW } from 'virtual:pwa-register';
 import { BUILT_IN_CARDS } from './cards';
 import { attachDrag, dialSvg, setNeedle } from './dial';
 import {
+  EMOJIS,
   RuleError,
   addCustomCard,
   canSeeReveal,
@@ -24,6 +25,7 @@ import {
   randomTarget,
   rejoinPlayer,
   submitGuess,
+  takenEmojis,
   waitingFor,
 } from './game';
 import type { Card, GameState, Turn } from './model';
@@ -69,12 +71,6 @@ type View =
   | { name: 'board'; period: Period }
   | { name: 'cards'; left: string; right: string; error?: string }
   | { name: 'menu'; confirmReset: boolean };
-
-const EMOJIS = [
-  '🦊', '🐢', '🐙', '🐝', '🦉', '🐸', '🦄', '🐳', '🦖', '🐧', '🐼', '🦁',
-  '🐯', '🐨', '🦩', '🦔', '🐌', '🦀', '🌵', '🍄', '🌻', '🍉', '🍩', '🌮',
-  '🚀', '🎸', '⚡', '🔥', '🌈', '⭐', '🎲', '🧩',
-];
 
 const app = document.getElementById('app')!;
 let game: GameState = load();
@@ -130,9 +126,9 @@ function clearToasts(): void {
   document.querySelectorAll('.toast').forEach((t) => t.remove());
 }
 
-/** An emoji no active player is using, so Join works right away (FR-102). */
+/** An emoji nobody has, so Join works right away (FR-102, FR-107). */
 function freeEmoji(): string {
-  const used = new Set(game.players.filter((p) => p.active).map((p) => p.emoji));
+  const used = takenEmojis(game);
   const free = EMOJIS.filter((e) => !used.has(e));
   const pool = free.length ? free : EMOJIS;
   return pool[Math.floor(Math.random() * pool.length)];
@@ -444,8 +440,12 @@ function renderPicker(): string {
 }
 
 function renderJoin(v: Extract<View, { name: 'join' }>): string {
-  const emojis = EMOJIS.map(
-    (e) => `<button type="button" class="emoji${e === v.emoji ? ' on" data-hero="avatar-new' : ''}" data-act="emoji" data-id="${e}" aria-label="${e}" aria-pressed="${e === v.emoji}">${e}</button>`,
+  // FR-107: emojis other players already have are shown but can't be picked.
+  const taken = takenEmojis(game);
+  const emojis = EMOJIS.map((e) =>
+    taken.has(e)
+      ? `<button type="button" class="emoji" disabled aria-label="${e}, taken">${e}</button>`
+      : `<button type="button" class="emoji${e === v.emoji ? ' on" data-hero="avatar-new' : ''}" data-act="emoji" data-id="${e}" aria-label="${e}" aria-pressed="${e === v.emoji}">${e}</button>`,
   ).join('');
   return layout(
     'Type your name, pick an emoji if you like, then tap Join.',
