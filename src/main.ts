@@ -1,5 +1,10 @@
 // HandWave app shell: screens, navigation, and input handling.
 
+// Bundled fonts (ADR-011): no requests to outside servers, cached for offline play.
+import '@fontsource/bricolage-grotesque/latin-800.css';
+import '@fontsource/dm-sans/latin-400.css';
+import '@fontsource/dm-sans/latin-500.css';
+import '@fontsource/dm-sans/latin-700.css';
 import './style.css';
 import { registerSW } from 'virtual:pwa-register';
 import { BUILT_IN_CARDS } from './cards';
@@ -24,6 +29,7 @@ import {
 import type { Card, GameState, Turn } from './model';
 import { type Period, clueScore, guessResults, hasFlame, leaderboard } from './scoring';
 import { load, save } from './storage';
+import { crown, flame, icons, logo } from './icons';
 
 // NFR-405: a new version waits until the picker, where nothing is in progress.
 let updateReady = false;
@@ -68,6 +74,8 @@ const EMOJIS = [
   '🚀', '🎸', '⚡', '🔥', '🌈', '⭐', '🎲', '🧩',
 ];
 
+const ORDINALS = ['1st', '2nd', '3rd', '4th'];
+
 const app = document.getElementById('app')!;
 let game: GameState = load();
 let me: string | null = null;
@@ -92,7 +100,7 @@ function player(id: string) {
 function who(id: string): string {
   const p = player(id);
   if (!p) return '❔ Unknown';
-  return `${esc(p.emoji)} ${esc(p.name)}${hasFlame(game, id) ? ' <span class="flame" title="On a streak">🔥</span>' : ''}`;
+  return `${esc(p.emoji)} ${esc(p.name)}${hasFlame(game, id) ? ` ${flame()}` : ''}`;
 }
 
 function deck(): Card[] {
@@ -183,14 +191,18 @@ window.addEventListener('popstate', () => {
 // ---------- layout pieces ----------
 
 function cardEnds(left: string, right: string): string {
-  return `<div class="ends"><span>◀ ${esc(left)}</span><span>${esc(right)} ▶</span></div>`;
+  return `<div class="ends"><span class="end left">${icons.prev}${esc(left)}</span><span class="end right">${esc(right)}${icons.next}</span></div>`;
 }
 
-function turnRow(t: Turn, status: string): string {
-  return `<button class="row" data-act="open-turn" data-id="${t.id}">
+/** Staggered entrance order for list items (ADR-011 motion). */
+const enter = (i: number) => `style="--i:${i}"`;
+
+function turnRow(t: Turn, status: string | null, i = 0): string {
+  const side = status === null ? `<span class="go" aria-label="Guess">${icons.next}</span>` : `<span class="row-side">${status}</span>`;
+  return `<button class="row enter" ${enter(i)} data-act="open-turn" data-id="${t.id}">
     <span class="row-main"><strong>“${esc(t.clue)}”</strong>
-    <small>${esc(t.left)} ↔ ${esc(t.right)}${t.creatorId === me ? '' : ` · by ${who(t.creatorId)}`}</small></span>
-    <span class="row-side">${status}</span>
+    <small>${esc(t.left)} ↔ ${esc(t.right)}${t.creatorId === me ? '' : ` · ${who(t.creatorId)}`}</small></span>
+    ${side}
   </button>`;
 }
 
@@ -218,8 +230,8 @@ function inlineField(o: {
 function layout(hint: string, main: string, footer = ''): string {
   const header = me
     ? `<header><span class="who">${who(me)}</span>
-       <button class="pass" data-act="pass">Pass the phone ↻</button></header>`
-    : `<header><span class="brand">✋ HandWave</span></header>`;
+       <button class="pass" data-act="pass">${icons.pass}Pass the phone</button></header>`
+    : `<header><span class="brand">${logo}HandWave</span></header>`;
   return `${header}${hint ? `<p class="hint">${hint}</p>` : ''}<main>${main}</main>${footer ? `<footer>${footer}</footer>` : ''}`;
 }
 
@@ -229,7 +241,10 @@ function renderPicker(): string {
   const active = game.players.filter((p) => p.active);
   const away = game.players.filter((p) => !p.active);
   const grid = active
-    .map((p) => `<button class="person" data-act="pick" data-id="${p.id}"><span class="big">${esc(p.emoji)}</span>${esc(p.name)}</button>`)
+    .map(
+      (p, i) =>
+        `<button class="person enter${hasFlame(game, p.id) ? ' hot' : ''}" ${enter(i)} data-act="pick" data-id="${p.id}"><span class="big">${esc(p.emoji)}</span><span class="pname">${esc(p.name)}${hasFlame(game, p.id) ? flame() : ''}</span></button>`,
+    )
     .join('');
   const returning = away.length
     ? `<details class="returning"><summary>Played before? Rejoin</summary>
@@ -238,15 +253,14 @@ function renderPicker(): string {
     : '';
   return layout(
     '',
-    `<h1>Who are you?</h1>${active.length ? `<div class="people">${grid}</div>` : ''}${returning}
-     <section class="howto"><h2>How to play</h2>
+    `<span class="deco sun" aria-hidden="true"></span><span class="deco mint" aria-hidden="true"></span>
+     <h1 class="hero">Who are you?</h1>${active.length ? `<div class="people">${grid}</div>` : ''}${returning}
+     <section class="howto card"><h2>How to play</h2>
      <p>One phone gets passed around. Whoever’s holding it can:</p>
-     <ul>
-       <li><strong>Write a clue.</strong> You get a spectrum, like <em>Cold ↔ Hot</em>, and a secret target on it.
-       Write a clue that guides the guessers to the target.</li>
-       <li><strong>Guess.</strong> Drag the needle to where you think someone else’s clue belongs,
-       then see the target and how everyone scored.</li>
-     </ul>
+     <div class="step"><span class="num sun">1</span><p><strong>Write a clue.</strong> You get a spectrum, like <em>Cold ↔ Hot</em>, and a secret target on it.
+       Write a clue that guides the guessers to the target.</p></div>
+     <div class="step"><span class="num mint">2</span><p><strong>Guess.</strong> Drag the needle to where you think someone else’s clue belongs,
+       then see the target and how everyone scored.</p></div>
      <p>Do as many as you like, in any order, then pass the phone. No talking, no taking turns.
      Join or leave anytime.</p></section>`,
     `<button class="primary" data-act="new-player">Join Game</button>`,
@@ -275,11 +289,14 @@ function renderHome(): string {
     .slice(0, 4);
   // FR-202: empty sections are hidden, not explained.
   const toGuess = waiting.length
-    ? `<h2>Clues to guess (${waiting.length})</h2><div class="list">${waiting.map((t) => turnRow(t, 'Guess ›')).join('')}</div>`
+    ? `<h2>Clues to guess <span class="count">${waiting.length}</span></h2><div class="list">${waiting.map((t, i) => turnRow(t, null, i)).join('')}</div>`
     : '';
   const board = top.length
-    ? `<h2>Top scores today</h2><div class="list">${top
-        .map((r, i) => `<div class="mini"><span>${i + 1}. ${who(r.playerId)}</span><strong>${fmt(r.combined)}</strong></div>`)
+    ? `<h2>Top scores today</h2><div class="tops">${top
+        .map(
+          (r, i) =>
+            `<div class="top-card enter${i === 0 ? ' first' : ''}" ${enter(i + waiting.length)}><span>${ORDINALS[i]} · ${who(r.playerId)}</span><strong>${fmt(r.combined)}</strong></div>`,
+        )
         .join('')}</div>`
     : '';
   return layout(
@@ -291,7 +308,7 @@ function renderHome(): string {
        <button data-act="cards">Cards</button>
        <button data-act="menu">More</button>
      </nav>`,
-    `<button class="primary" data-act="create">＋ Write a clue</button>`,
+    `<button class="primary" data-act="create">${icons.plus}Write a clue</button>`,
   );
 }
 
@@ -301,8 +318,8 @@ function renderCreate(v: Extract<View, { name: 'create' }>): string {
     `${cardEnds(v.card.left, v.card.right)}
      <div class="dial-host secret" id="dial">${dialSvg({ target: v.target })}</div>
      <div class="row-buttons">
-       <button class="peek" data-hold="peek">👁 Hold to peek</button>
-       <button data-act="redraw">🔄 New card</button>
+       <button class="peek" data-hold="peek">${icons.peek}Hold to peek</button>
+       <button data-act="redraw">${icons.redraw}New card</button>
      </div>
      ${inlineField({ form: 'send', id: 'clue', label: 'Your clue', value: v.clue, button: 'Send', enter: 'send', max: 60, placeholder: 'A word or phrase' })}
      ${v.error ? `<p class="error">${esc(v.error)}</p>` : ''}
@@ -319,8 +336,8 @@ function renderAnswer(v: Extract<View, { name: 'answer' }>, t: Turn): string {
      ${cardEnds(t.left, t.right)}
      <div class="dial-host" id="dial">${dialSvg({ needle: v.pos })}</div>
      <div class="row-buttons">
-       <button data-act="nudge" data-id="-1" aria-label="Move left">◀ Nudge</button>
-       <button data-act="nudge" data-id="1" aria-label="Move right">Nudge ▶</button>
+       <button data-act="nudge" data-id="-1" aria-label="Move left">${icons.prev}Nudge</button>
+       <button data-act="nudge" data-id="1" aria-label="Move right">Nudge${icons.next}</button>
      </div>`,
     `<button data-act="back">Skip</button><button class="primary" data-act="lock">Lock in guess</button>`,
   );
@@ -335,17 +352,23 @@ function renderReveal(v: Extract<View, { name: 'reveal' }>, t: Turn): string {
   const isCreator = t.creatorId === me;
   // FR-617: name the bonuses so players learn them by seeing them.
   const bonuses = mine
-    ? [mine.middle ? `+${mine.middle} middle target` : '', mine.best ? `+${mine.best} best guess 👑` : ''].filter(Boolean)
+    ? [
+        mine.middle ? `<span class="chip sun enter" style="--i:0">+${mine.middle} middle target</span>` : '',
+        mine.best ? `<span class="chip mint enter" style="--i:1">${crown('')}+${mine.best} best guess</span>` : '',
+      ].filter(Boolean)
     : [];
+  const confetti = v.justAnswered && mine && mine.zone > 0
+    ? '<span class="bit b1"></span><span class="bit b2"></span><span class="bit b3"></span><span class="bit b4"></span><span class="bit b5"></span>'
+    : '';
   const banner = mine
-    ? `<p class="score s${mine.zone}">You scored <strong>${mine.total}</strong></p>
-       ${bonuses.length ? `<p class="bonuses">${bonuses.map((b) => `<span class="chip">${b}</span>`).join('')}</p>` : ''}`
+    ? `<div class="score"><span>You scored</span><span class="badge-box"><span class="burst" aria-hidden="true">${confetti}</span><strong class="badge s${mine.zone}">${mine.total}</strong></span></div>
+       ${bonuses.length ? `<p class="bonuses">${bonuses.join('')}</p>` : ''}`
     : isCreator
-      ? `<p class="score">Your Clue Score <strong>${fmt(clueScore(game, t))}</strong></p>`
+      ? `<div class="score"><span>Your Clue Score</span><strong class="badge clue">${fmt(clueScore(game, t))}</strong></div>`
       : '';
   const rows = results.length
     ? results
-        .map((r) => `<div class="mini"><span>${who(r.guess.playerId)}${r.best ? ' 👑' : ''}</span><strong>${r.total}</strong></div>`)
+        .map((r, i) => `<div class="mini enter" ${enter(i + 2)}><span>${who(r.guess.playerId)}${r.best ? crown() : ''}</span><strong>${r.total}</strong></div>`)
         .join('')
     : `<p class="empty">No guesses yet. Check back later.</p>`;
   const next = waitingFor(game, me!).length > 0; // FR-408
@@ -354,10 +377,10 @@ function renderReveal(v: Extract<View, { name: 'reveal' }>, t: Turn): string {
     `<p class="by">Clue from ${who(t.creatorId)}</p>
      <h1 class="clue">“${esc(t.clue)}”</h1>
      ${cardEnds(t.left, t.right)}
-     <div class="dial-host" id="dial">${dialSvg({ target: t.target, needle: mine?.guess.position, markers: others })}</div>
-     ${banner}
+     <div class="dial-host${v.justAnswered ? ' celebrate' : ''}" id="dial">${dialSvg({ target: t.target, needle: mine?.guess.position, markers: others })}</div>
+     <div class="${v.justAnswered ? 'celebrate' : ''}">${banner}</div>
      <h2>Scores</h2><div class="list">${rows}</div>`,
-    `<button ${next ? '' : 'class="primary"'} data-act="back">Done</button>${next ? '<button class="primary" data-act="next-clue">Next clue ›</button>' : ''}`,
+    `<button ${next ? '' : 'class="primary"'} data-act="back">Done</button>${next ? `<button class="primary" data-act="next-clue">Next clue${icons.next}</button>` : ''}`,
   );
 }
 
@@ -368,7 +391,7 @@ function renderTurns(v: Extract<View, { name: 'turns' }>): string {
   else if (v.tab === 'answered') list = all.filter((t) => hasGuessed(game, t.id, me!));
   else list = all.filter((t) => t.creatorId === me);
   const status = (t: Turn) => {
-    if (v.tab === 'waiting') return 'Guess ›';
+    if (v.tab === 'waiting') return null;
     if (v.tab === 'created') {
       const c = clueScore(game, t);
       return c === null ? 'No guesses yet' : `${fmt(c)} pts`;
@@ -376,8 +399,8 @@ function renderTurns(v: Extract<View, { name: 'turns' }>): string {
     const mine = guessResults(game, t).find((r) => r.guess.playerId === me)!;
     return `${mine.total} pts`;
   };
-  const row = (t: Turn) => {
-    if (v.tab !== 'created') return turnRow(t, status(t));
+  const row = (t: Turn, i: number) => {
+    if (v.tab !== 'created') return turnRow(t, status(t), i);
     // FR-310: creators can delete their own clues, after confirming.
     const count = game.guesses.filter((g) => g.turnId === t.id).length;
     const confirm =
@@ -387,13 +410,13 @@ function renderTurns(v: Extract<View, { name: 'turns' }>): string {
              <div class="row-buttons"><button data-act="cancel-delete">Keep it</button><button class="danger" data-act="delete-turn" data-id="${t.id}">Delete</button></div>
            </div>`
         : '';
-    return `<div class="row-wrap">${turnRow(t, status(t))}
-      <button class="icon" data-act="ask-delete" data-id="${t.id}" aria-label="Delete clue “${esc(t.clue)}”">🗑</button></div>${confirm}`;
+    return `<div class="row-wrap">${turnRow(t, status(t), i)}
+      <button class="icon-btn" data-act="ask-delete" data-id="${t.id}" aria-label="Delete clue “${esc(t.clue)}”">${icons.trash}</button></div>${confirm}`;
   };
   const tab = (id: Tab, label: string) =>
     `<button class="tab ${v.tab === id ? 'on' : ''}" data-act="tab" data-id="${id}" aria-pressed="${v.tab === id}">${label}</button>`;
   return layout(
-    v.tab === 'created' ? 'Tap a clue to see how everyone did. Tap 🗑 to delete one.' : 'Tap a clue to guess it or see how everyone did.',
+    v.tab === 'created' ? 'Tap a clue to see how everyone did, or the trash can to delete it.' : 'Tap a clue to guess it or see how everyone did.',
     `<h1>Clues</h1><div class="tabs">${tab('waiting', 'To guess')}${tab('answered', 'I guessed')}${tab('created', 'My clues')}</div>
      <div class="list">${list.length ? list.map(row).join('') : '<p class="empty">Nothing here yet.</p>'}</div>`,
     `<button class="primary" data-act="back">Back</button>`,
@@ -408,10 +431,10 @@ function periodTab(id: Period, label: string): string {
 function renderBoard(v: Extract<View, { name: 'board' }>): string {
   const ranked = leaderboard(game, v.period);
   const rows = ranked
-    .map((r) => {
+    .map((r, i) => {
       const rank = r.combined === null ? '–' : ranked.findIndex((x) => x.combined === r.combined) + 1;
       const p = player(r.playerId)!;
-      return `<div class="score-row ${p.active ? '' : 'away'}">
+      return `<div class="score-row enter ${p.active ? '' : 'away'}${rank === 1 ? ' first' : ''}" ${enter(i)}>
         <span class="rank">${rank}</span>
         <span class="name"><span>${who(r.playerId)}${p.active ? '' : ' <small>(left)</small>'}</span>
           <small>Guessing Score ${fmt(r.guessing)} · Clue Score ${fmt(r.clues)}</small></span>
@@ -430,7 +453,7 @@ function renderBoard(v: Extract<View, { name: 'board' }>): string {
 
 function renderCards(v: Extract<View, { name: 'cards' }>): string {
   const custom = game.customCards
-    .map((c) => `<div class="mini"><span>${esc(c.left)} ↔ ${esc(c.right)}</span><button class="small" data-act="del-card" data-id="${c.id}">Delete</button></div>`)
+    .map((c, i) => `<div class="mini enter" ${enter(i)}><span>${esc(c.left)} ↔ ${esc(c.right)}</span><button class="icon-btn small" data-act="del-card" data-id="${c.id}" aria-label="Delete card ${esc(c.left)} to ${esc(c.right)}">${icons.trash}</button></div>`)
     .join('');
   return layout(
     'Add your own spectrum: two opposite ends. It joins the deck right away.',

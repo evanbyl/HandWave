@@ -11,8 +11,10 @@ Quality bars every feature must meet. IDs are stable; status values match the fu
 | NFR-103 | **One-handed play:** primary actions sit within thumb reach in the lower half of the screen. | Accepted |
 | NFR-104 | **Silent play:** the game never depends on sound or speech. No audio is required to play. | Accepted |
 | NFR-105 | Touch targets are at least 44 × 44 px. | Accepted |
-| NFR-106 | Text and controls meet WCAG 2.1 AA color contrast. | Accepted |
+| NFR-106 | Text and controls meet WCAG 2.1 AA color contrast (ADR-011 tokens are chosen to pass). | Accepted |
 | NFR-107 | Every dial position can also be set by an accessible alternative to dragging (e.g. step buttons or a keyboard). | Implemented |
+| NFR-108 | **Reduced motion:** when the phone asks for reduced motion, the app shows no animation (ADR-011). | Implemented |
+| NFR-109 | **One visual language:** colors, type, shapes, icons, and motion follow ADR-011. Emoji appear only as player avatars. | Implemented |
 
 ## Privacy and secrecy
 
