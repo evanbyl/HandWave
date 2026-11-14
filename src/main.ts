@@ -165,6 +165,7 @@ function back(): void {
   if (howto) return closeHowto(); // FR-901, FR-206
   if (view.name === 'picker') return; // FR-903: stay in the app
   if (view.name === 'home') return passPhone(); // FR-902
+  if (view.name === 'join' && leaveJoinTransition()) return; // FR-208 in reverse
   let prev = stack.pop();
   if (prev && prev.name === 'turns') prev = { ...prev, confirmDelete: undefined };
   if (prev && (prev.name === 'answer' || prev.name === 'reveal') && !findTurn(prev.turnId)) prev = undefined;
@@ -453,6 +454,115 @@ function joinTransition(): void {
     finish();
   };
   Promise.all(anims.map((a) => a.finished)).then(finish, finish);
+}
+
+/**
+ * Back from the Join screen: the Join transition in reverse (FR-208).
+ * The Join screen flies off to the right, the white field grows from the name
+ * input to full screen and clears, the picker flies back in from the left,
+ * and the Join button glides back into Join Game as "Game" slides back in.
+ * Returns false (so a plain Back happens) when it can't animate.
+ */
+function leaveJoinTransition(): boolean {
+  if (reducedMotion() || typeof document.body.animate !== 'function') return false;
+  const input = document.getElementById('name') as HTMLInputElement | null;
+  const row = input?.closest<HTMLElement>('.field-row');
+  const joinBtn = row?.querySelector<HTMLElement>('.inset');
+  if (!input || !row || !joinBtn) return false;
+  const fieldBox = input.getBoundingClientRect();
+  const start = joinBtn.getBoundingClientRect();
+  input.blur(); // put the keyboard away
+
+  // A frozen copy of the Join screen that can fly away; the stand-ins draw its field.
+  const outgoing = app.cloneNode(true) as HTMLElement;
+  outgoing.removeAttribute('id');
+  outgoing.className = 'app-clone';
+  outgoing.setAttribute('aria-hidden', 'true');
+  outgoing.inert = true;
+  outgoing.style.top = `${-window.scrollY}px`;
+  outgoing.querySelector('header')?.setAttribute('style', 'visibility: hidden');
+  outgoing.querySelector<HTMLElement>('.field-row')?.style.setProperty('visibility', 'hidden');
+  document.body.appendChild(outgoing);
+
+  // The real picker, with its own entrance bounce held back for this one.
+  stack = [];
+  view = { name: 'picker' };
+  app.classList.add('no-enter');
+  render();
+  window.scrollTo(0, 0);
+  const target = app.querySelector<HTMLElement>('[data-act="new-player"]');
+  if (!target) {
+    outgoing.remove();
+    app.classList.remove('no-enter');
+    return true;
+  }
+  target.style.opacity = '0'; // the stand-in button lands here
+  const end = target.getBoundingClientRect();
+
+  const anims: Animation[] = [];
+  const fly = (el: Element, keyframes: Keyframe[], o: KeyframeAnimationOptions) => anims.push(el.animate(keyframes, o));
+  const r = (b: { top: number; left: number; width: number; height: number }) => ({
+    top: `${b.top}px`, left: `${b.left}px`, width: `${b.width}px`, height: `${b.height}px`,
+  });
+
+  // Join screen flies off to the right.
+  const leaving = [...outgoing.querySelectorAll('.hint, main > *:not(.inline-form)'), ...outgoing.querySelectorAll('.inline-form > label'), ...outgoing.querySelectorAll('footer > *')];
+  leaving.forEach((el, i) =>
+    fly(el, [{ transform: 'none' }, { transform: 'translateX(120vw) rotate(8deg)' }], {
+      duration: 260, delay: i * 20, easing: ACCEL, fill: 'forwards',
+    }),
+  );
+
+  // White field grows from the name input to full screen, then clears.
+  const field = document.createElement('div');
+  field.className = 'field-ghost';
+  document.body.appendChild(field);
+  fly(field, [
+    { ...r(fieldBox), borderRadius: '16px', boxShadow: '3px 3px 0 #1C1838', visibility: 'visible' },
+    { ...r({ top: 0, left: 0, width: window.innerWidth, height: window.innerHeight }), borderRadius: '0px', boxShadow: '0 0 0 #1C1838', visibility: 'visible' },
+  ], { duration: 320, easing: GLIDE });
+
+  // The picker flies back in from the left as the field clears.
+  const arriving = [...app.querySelectorAll('main > *'), ...app.querySelectorAll('footer > :not([data-act="new-player"])')];
+  arriving.forEach((el, i) =>
+    fly(el, [{ transform: 'translateX(-120vw) rotate(-8deg)' }, { transform: 'none' }], {
+      duration: 380, delay: 300 + i * 25, easing: GLIDE, fill: 'backwards',
+    }),
+  );
+
+  // The Join button glides back into Join Game; "Game" slides back in from the right.
+  const ghost = document.createElement('div');
+  ghost.className = 'join-ghost';
+  ghost.innerHTML = '<span class="j">Join</span><span class="g">&nbsp;Game</span>';
+  document.body.appendChild(ghost);
+  const game = ghost.querySelector<HTMLElement>('.g')!;
+  const gameWidth = game.getBoundingClientRect().width;
+  fly(game, [
+    { width: '0px', transform: `translateX(${end.width}px)` },
+    { width: `${gameWidth}px`, transform: 'none' },
+  ], { duration: 320, delay: 280, easing: GLIDE, fill: 'both' });
+  fly(ghost, [
+    { ...r(start), borderRadius: '11px', fontSize: '1.05rem', boxShadow: '0 0 0 #1C1838' },
+    { ...r(end), borderRadius: '20px', fontSize: '1.2rem', boxShadow: '5px 5px 0 #1C1838' },
+  ], { duration: 600, easing: GLIDE, fill: 'forwards' });
+
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    endJoinTransition = null;
+    target.style.opacity = '';
+    app.classList.remove('no-enter');
+    outgoing.remove();
+    field.remove();
+    ghost.remove();
+  };
+  endJoinTransition = () => {
+    anims.forEach((a) => a.cancel());
+    finish();
+  };
+  Promise.all(anims.map((a) => a.finished)).then(finish, finish);
+  return true;
 }
 
 // ---------- screens ----------

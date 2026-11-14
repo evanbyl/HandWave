@@ -451,6 +451,8 @@ body.howto-open { overflow: hidden; }
   pointer-events: none;
 }
 .join-ghost .g { display: inline-block; overflow: visible; }
+.join-ghost { font-size: 1.2rem; } /* measured at Join Game size */
+.no-enter .enter { animation: none; }
 
 /* ---------- motion (ADR-011) ---------- */
 
