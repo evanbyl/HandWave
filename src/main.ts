@@ -162,12 +162,15 @@ function back(): void {
 }
 
 // Keep one spare history entry so the browser's Back stays inside the app.
+// The spare entry is added only from a tap (run() below), never at page load:
+// browsers such as Firefox skip history entries the player never interacted
+// with, so Back would jump straight past an untouched landing entry to the
+// previous site. Tapping while the landing entry is current marks it as used.
 const GUARD = 'handwave-guard';
 function ensureGuard(): void {
   if (history.state?.hw !== GUARD) history.pushState({ hw: GUARD }, '');
 }
 history.replaceState({ hw: 'base' }, '');
-ensureGuard();
 window.addEventListener('popstate', () => {
   // FR-903: on the picker, Back leaves the app. Keep going back (past any older
   // HandWave entries left by reloads); the browser's native leave
