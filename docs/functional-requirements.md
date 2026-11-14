@@ -36,7 +36,7 @@ Status values: **Proposed** → **Accepted** → **Implemented** → **Verified*
 | FR-203 | Every screen shows the active player's emoji and name, and a **Pass the phone** button that returns to the picker. | Implemented |
 | FR-204 | Every screen except the "Who are you?" picker shows a **one-line plain-language instruction** of what to do next (e.g. "Drag the needle to where you think the clue points"). A person handed the phone mid-game must be able to act without any explanation. The picker has no instruction line, since its heading and Join Game button already say what to do and vertical space is tight. | Implemented |
 | FR-205 | There is no enforced turn order. Any player may create clues or answer clues in any order and in any quantity before passing the phone. | Implemented |
-| FR-206 | The picker shows a short **"How to play"** that describes HandWave's own flow, not the board game's: one phone passed around, make clues and answer others' clues in any order, no talking, join or leave anytime. | Implemented |
+| FR-206 | The picker has a white **How to play** button, the same size as Join Game, just above it. Tapping it expands the button's outline to fill the screen while its label slides up into a header and the instructions slide up from below, with a close button. Closing, or Back (FR-901), plays the animation in reverse back into the button. The instructions describe HandWave's own flow, not the board game's: one phone passed around, make clues and answer others' clues in any order, no talking, join or leave anytime. | Implemented |
 | FR-207 | The UI calls the unit of play a **clue** and a player's response a **guess**. The two actions are **Write a clue** and **Guess**. It avoids "turn" (confused with whose turn it is to hold the phone) and invented terms like "wave". | Implemented |
 
 ## 3. Writing a clue
@@ -121,7 +121,7 @@ Calculations are defined in ADR-010.
 
 | ID | Requirement | Status |
 |---|---|---|
-| FR-901 | The browser's or phone's **Back** does the same thing as the on-screen Back, Cancel, Skip, or Done button: it returns to the screen the player came from (e.g. a clue opened from the Clues screen returns to that screen and tab). | Implemented |
+| FR-901 | The browser's or phone's **Back** does the same thing as the on-screen Back, Cancel, Skip, or Done button: it returns to the screen the player came from (e.g. a clue opened from the Clues screen returns to that screen and tab). With How to play open, Back closes it (FR-206). | Implemented |
 | FR-902 | On the home screen, Back does the same as **Pass the phone**: it returns to the "Who are you?" picker. | Implemented |
 | FR-903 | On the "Who are you?" picker, Back leaves HandWave, and the browser shows its own native **leave confirmation** (FR-907). There is no in-app exit prompt. | Implemented |
 | FR-904 | A single-line text field's **submit button sits inside the field, on the right** (e.g. *Send* in the clue field, *Join* in the name field, *Add* in the card field). | Implemented |

@@ -11,6 +11,7 @@ export const icons = {
   next: stroke('<path d="M9 6l6 6-6 6"/>', 3),
   prev: stroke('<path d="M15 6l-6 6 6 6"/>', 3),
   plus: stroke('<path d="M12 5v14M5 12h14"/>', 3),
+  close: stroke('<path d="M6 6l12 12M18 6L6 18"/>', 2.8),
 };
 
 /** Filled sticker-style icons with an ink outline. */

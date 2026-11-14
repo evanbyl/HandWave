@@ -18,6 +18,7 @@
   --display: 'Bricolage Grotesque', system-ui, sans-serif;
   --body: 'DM Sans', system-ui, sans-serif;
   --spring: cubic-bezier(.3, 1.45, .5, 1);
+  --glide: cubic-bezier(.2, .85, .25, 1);
   color-scheme: light;
 }
 
@@ -146,9 +147,6 @@ main > :not(.deco) { position: relative; z-index: 1; }
 .returning .row { margin-top: 8px; }
 
 .card { background: var(--surface); border: var(--line); border-radius: 22px; padding: 16px; }
-.howto { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
-.howto h2 { margin: 0; font-size: 1.3rem; }
-.howto p { margin: 0; font-size: 0.95rem; }
 .step { display: flex; gap: 12px; align-items: flex-start; }
 .num {
   flex: 0 0 30px; height: 30px; border-radius: 50%; border: var(--line);
@@ -156,6 +154,7 @@ main > :not(.deco) { position: relative; z-index: 1; }
 }
 .num.sun { background: var(--sun); }
 .num.mint { background: var(--mint); }
+.num.peach { background: var(--peach); }
 
 /* ---------- forms ---------- */
 
@@ -330,6 +329,76 @@ button.inset {
   box-shadow: var(--shadow);
   animation: toast-in .45s var(--spring) both;
 }
+
+/* ---------- How to play (FR-206) ---------- */
+
+footer:has(.howto-btn) { flex-direction: column; align-items: center; gap: 12px; }
+footer:has(.howto-btn) button { flex: none; width: 100%; }
+#app:has(.howto-btn) { padding-bottom: calc(200px + env(safe-area-inset-bottom)); }
+.howto-btn { background: var(--surface); font: 800 1.2rem var(--display); letter-spacing: -0.01em; box-shadow: 5px 5px 0 var(--ink); }
+.howto-btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+
+.howto-panel {
+  position: fixed;
+  z-index: 20;
+  background: var(--surface);
+  border: var(--line);
+  border-radius: 20px;
+  box-shadow: 5px 5px 0 var(--ink);
+  overflow: hidden;
+  transition:
+    top .48s var(--glide), left .48s var(--glide), width .48s var(--glide), height .48s var(--glide),
+    border-radius .48s var(--glide), box-shadow .3s ease;
+}
+.howto-panel.open { border-radius: 0; box-shadow: 0 0 0 var(--ink); }
+.howto-title {
+  position: absolute;
+  margin: 0;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  font: 800 1.2rem var(--display);
+  letter-spacing: -0.01em;
+  transition: left .48s var(--glide), top .48s var(--glide), transform .48s var(--glide), font-size .48s var(--glide), letter-spacing .48s var(--glide);
+}
+.open .howto-title { left: 22px; top: calc(26px + env(safe-area-inset-top)); transform: none; font-size: 2.5rem; letter-spacing: -0.04em; }
+.howto-close {
+  position: absolute;
+  top: calc(18px + env(safe-area-inset-top));
+  right: 18px;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+  transform: scale(0) rotate(-90deg);
+  pointer-events: none;
+  transition: transform .3s var(--glide);
+}
+.open .howto-close { transform: none; pointer-events: auto; transition: transform .5s var(--spring) .18s; }
+.howto-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(104px + env(safe-area-inset-top));
+  bottom: 0;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 6px 22px calc(32px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  /* Slides up from below the screen; no fade (FR-206). */
+  transform: translateY(100vh);
+  transition: transform .48s var(--glide);
+}
+.open .howto-body { transform: none; }
+.howto-lead { margin: 0; font-size: 1.1rem; color: var(--muted); }
+.howto-body .step p { margin: 0; font-size: 1.08rem; line-height: 1.5; }
+.howto-body .num { flex-basis: 36px; height: 36px; font-size: 1.05rem; }
+body.howto-open { overflow: hidden; }
 
 /* ---------- motion (ADR-011) ---------- */
 
