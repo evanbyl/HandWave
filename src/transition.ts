@@ -395,7 +395,7 @@ export function transition(app: HTMLElement, apply: () => void, opts: Transition
   oldHeroes.forEach((a, key) => {
     const b = newHeroes.get(key);
     if (!b || inKept(a.el, oldUnits, keptOld) || inKept(b.el, newUnits, keptNew)) return;
-    // The same piece in two lists (a clue row on Home and on All clues) travels with its list.
+    // The same piece in two lists (a clue row on Home and on the Clues screen) travels with its list.
     if (a.el.tagName === b.el.tagName && a.el.className === b.el.className && a.text === b.text) return;
     const copy = cloneHeroes[a.index];
     if (copy instanceof HTMLInputElement) {

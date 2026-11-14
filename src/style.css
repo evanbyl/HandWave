@@ -196,6 +196,10 @@ button.inset {
   border-radius: 11px;
   font-size: 1.05rem;
 }
+/* A button inside a control that already has a sticker shadow gets none of its
+   own (ADR-013); it shrinks slightly while held instead of sinking. */
+.field-row button { --lift: 0px; box-shadow: none; }
+.field-row button.pressed { transform: scale(.94); box-shadow: none; }
 .label { color: var(--muted); font-weight: 700; font-size: 0.95rem; margin: 14px 0 6px; }
 .emojis { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px; }
 .emoji { font-size: 1.6rem; padding: 4px; min-height: 52px; border-radius: 14px; }

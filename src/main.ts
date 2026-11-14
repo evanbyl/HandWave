@@ -479,7 +479,7 @@ function renderHome(): string {
     waiting.length ? 'Tap a clue to guess it, or write your own.' : 'Write a clue: you’ll get a secret target to guide the guessers to.',
     `${toGuess}${board}
      <nav class="links">
-       <button data-act="turns" data-hero="title-turns">All clues</button>
+       <button data-act="turns" data-hero="title-turns">Clues</button>
        <button data-act="board" data-hero="title-board">Scores</button>
        <button data-act="cards" data-hero="title-cards">Cards</button>
        <button data-act="menu" data-hero="title-menu">More</button>
@@ -595,7 +595,7 @@ function renderTurns(v: Extract<View, { name: 'turns' }>): string {
     `<button class="tab ${v.tab === id ? 'on' : ''}" data-act="tab" data-id="${id}" aria-pressed="${v.tab === id}">${label}</button>`;
   return layout(
     v.tab === 'created' ? 'Tap a clue to see how everyone did, or the trash can to delete it.' : 'Tap a clue to guess it or see how everyone did.',
-    `<h1 data-hero="title-turns">All clues</h1><div class="tabs" data-keep="tabs">${tab('waiting', 'To guess')}${tab('answered', 'I guessed')}${tab('created', 'My clues')}</div>
+    `<h1 data-hero="title-turns">Clues</h1><div class="tabs" data-keep="tabs">${tab('waiting', 'To guess')}${tab('answered', 'I guessed')}${tab('created', 'My clues')}</div>
      <div class="list">${list.length ? list.map(row).join('') : '<p class="empty">Nothing here yet.</p>'}</div>`,
     `<button class="primary" data-act="back">Back</button>`,
   );
