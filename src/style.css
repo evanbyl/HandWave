@@ -234,14 +234,11 @@ button.inset {
 .mini > span { display: flex; align-items: center; gap: 6px; font-weight: 700; }
 .mini strong { font: 800 1.35rem var(--display); }
 
-.tops { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.top-card {
-  display: flex; flex-direction: column; gap: 2px;
-  padding: 10px 14px; background: var(--surface); border: var(--line); border-radius: 18px;
-}
-.top-card span { display: flex; align-items: center; gap: 4px; font-size: 0.82rem; font-weight: 700; min-width: 0; }
-.top-card strong { font: 800 1.9rem/1.1 var(--display); }
-.top-card.first { background: var(--sun); }
+/* Home's top four, ranked top to bottom (FR-202). */
+.tops { gap: 8px; }
+.top-row > span { gap: 8px; }
+.top-row .rank { width: 28px; height: 28px; font-size: 0.85rem; flex: 0 0 auto; }
+.top-row.first { background: var(--sun); }
 
 .links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 16px; }
 .links button { padding: 6px; font: 800 1rem var(--display); letter-spacing: -0.01em; border-radius: 14px; }
