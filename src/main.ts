@@ -245,6 +245,9 @@ function layout(hint: string, main: string, footer = ''): string {
 // The white button grows into a full-screen panel: its outline expands, the
 // label glides up into the header, and the steps slide up from below.
 // Closing plays it backwards into the button.
+// The text is laid out at full-screen size from the first frame and revealed
+// through a window (clip-path) that grows with the outline, so lines never
+// re-wrap mid-animation.
 
 const HOWTO_MS = 480;
 let howto: HTMLElement | null = null;
@@ -252,11 +255,24 @@ let howtoClosing = false;
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function setRect(el: HTMLElement, r: { top: number; left: number; width: number; height: number }): void {
-  el.style.top = `${r.top}px`;
-  el.style.left = `${r.left}px`;
-  el.style.width = `${r.width}px`;
-  el.style.height = `${r.height}px`;
+type Box = { top: number; left: number; width: number; height: number };
+
+const fullScreen = (): Box => ({ top: 0, left: 0, width: window.innerWidth, height: window.innerHeight });
+
+/** Move the outline and the reveal window to a box (the button's, or the whole screen). */
+function setBox(panel: HTMLElement, r: Box): void {
+  const frame = panel.querySelector<HTMLElement>('.howto-frame')!;
+  frame.style.top = `${r.top}px`;
+  frame.style.left = `${r.left}px`;
+  frame.style.width = `${r.width}px`;
+  frame.style.height = `${r.height}px`;
+  const set = (k: string, v: number) => panel.style.setProperty(k, `${v}px`);
+  set('--t', r.top);
+  set('--l', r.left);
+  set('--w', r.width);
+  set('--h', r.height);
+  set('--r', window.innerWidth - r.left - r.width);
+  set('--b', window.innerHeight - r.top - r.height);
 }
 
 function howtoButton(): HTMLElement | null {
@@ -272,6 +288,8 @@ function openHowto(): void {
   panel.setAttribute('aria-modal', 'true');
   panel.setAttribute('aria-labelledby', 'howto-title');
   panel.innerHTML = `
+    <div class="howto-frame" aria-hidden="true"></div>
+    <div class="howto-content">
     <h2 class="howto-title" id="howto-title">How to play</h2>
     <button class="howto-close" aria-label="Close How to play">${icons.close}</button>
     <div class="howto-body">
@@ -282,8 +300,9 @@ function openHowto(): void {
         else’s clue belongs, then see the target and how everyone scored.</p></div>
       <div class="step"><span class="num peach">3</span><p><strong>Pass the phone.</strong> Do as many as you like, in any order.
         No talking, no taking turns. Join or leave anytime.</p></div>
+    </div>
     </div>`;
-  setRect(panel, btn.getBoundingClientRect());
+  setBox(panel, btn.getBoundingClientRect());
   document.body.appendChild(panel);
   btn.style.visibility = 'hidden';
   document.body.classList.add('howto-open');
@@ -294,7 +313,7 @@ function openHowto(): void {
   });
   void panel.offsetWidth; // start from the button's box
   panel.classList.add('open');
-  setRect(panel, { top: 0, left: 0, width: window.innerWidth, height: window.innerHeight });
+  setBox(panel, fullScreen());
   window.setTimeout(() => panel.querySelector<HTMLElement>('.howto-close')?.focus(), reducedMotion() ? 0 : HOWTO_MS);
 }
 
@@ -304,7 +323,7 @@ function closeHowto(): void {
   howtoClosing = true;
   const btn = howtoButton();
   panel.classList.remove('open');
-  if (btn) setRect(panel, btn.getBoundingClientRect());
+  if (btn) setBox(panel, btn.getBoundingClientRect());
   window.setTimeout(() => {
     panel.remove();
     howto = null;
@@ -319,7 +338,7 @@ function closeHowto(): void {
 }
 
 window.addEventListener('resize', () => {
-  if (howto && !howtoClosing) setRect(howto, { top: 0, left: 0, width: window.innerWidth, height: window.innerHeight });
+  if (howto && !howtoClosing) setBox(howto, fullScreen());
 });
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && howto) {

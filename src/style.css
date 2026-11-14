@@ -338,24 +338,32 @@ footer:has(.howto-btn) button { flex: none; width: 100%; }
 .howto-btn { background: var(--surface); font: 800 1.2rem var(--display); letter-spacing: -0.01em; box-shadow: 5px 5px 0 var(--ink); }
 .howto-btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
 
-.howto-panel {
-  position: fixed;
-  z-index: 20;
+.howto-panel { position: fixed; inset: 0; z-index: 20; }
+/* The outline that grows from the button to the screen edges. */
+.howto-frame {
+  position: absolute;
   background: var(--surface);
   border: var(--line);
   border-radius: 20px;
   box-shadow: 5px 5px 0 var(--ink);
-  overflow: hidden;
   transition:
     top .48s var(--glide), left .48s var(--glide), width .48s var(--glide), height .48s var(--glide),
     border-radius .48s var(--glide), box-shadow .3s ease;
 }
-.howto-panel.open { border-radius: 0; box-shadow: 0 0 0 var(--ink); }
+.open .howto-frame { border-radius: 0; box-shadow: 0 0 0 var(--ink); }
+/* Full-screen layout, revealed through a window that matches the outline. */
+.howto-content {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(calc(var(--t) + 2px) calc(var(--r) + 2px) calc(var(--b) + 2px) calc(var(--l) + 2px) round 18px);
+  transition: clip-path .48s var(--glide);
+}
+.open .howto-content { clip-path: inset(0 0 0 0 round 0); }
 .howto-title {
   position: absolute;
   margin: 0;
-  left: 50%;
-  top: 50%;
+  left: calc(var(--l) + var(--w) / 2);
+  top: calc(var(--t) + var(--h) / 2);
   transform: translate(-50%, -50%);
   white-space: nowrap;
   font: 800 1.2rem var(--display);
