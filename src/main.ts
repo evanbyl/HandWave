@@ -30,6 +30,8 @@ import type { Card, GameState, Turn } from './model';
 import { type Period, clueScore, guessResults, hasFlame, leaderboard } from './scoring';
 import { load, save } from './storage';
 import { crown, flame, icons, logo } from './icons';
+import { type Ctx, type Dir, GLIDE, endTransition, reducedMotion, transition } from './transition';
+import { setUpPress } from './press';
 
 // NFR-405: a new version waits until the picker, where nothing is in progress.
 let updateReady = false;
@@ -62,7 +64,7 @@ type View =
   | { name: 'home' }
   | { name: 'create'; card: Card; target: number; clue: string; error?: string }
   | { name: 'answer'; turnId: string; pos: number }
-  | { name: 'reveal'; turnId: string; justAnswered: boolean }
+  | { name: 'reveal'; turnId: string; justAnswered: boolean; celebrated?: boolean }
   | { name: 'turns'; tab: Tab; confirmDelete?: string }
   | { name: 'board'; period: Period }
   | { name: 'cards'; left: string; right: string; error?: string }
@@ -82,8 +84,6 @@ let me: string | null = null;
 let view: View = { name: 'picker' };
 /** Screens to return to on Back (FR-901). Cleared on home and picker. */
 let stack: View[] = [];
-/** Ends a running Join transition at once, when the player navigates mid-animation (FR-208). */
-let endJoinTransition: (() => void) | null = null;
 
 // ---------- helpers ----------
 
@@ -99,10 +99,12 @@ function player(id: string) {
   return game.players.find((p) => p.id === id);
 }
 
-function who(id: string): string {
+/** A player's emoji and name. `hero` marks them to fly between screens (the header, ADR-012). */
+function who(id: string, hero = false): string {
   const p = player(id);
   if (!p) return '❔ Unknown';
-  return `${esc(p.emoji)} ${esc(p.name)}${hasFlame(game, id) ? ` ${flame()}` : ''}`;
+  const h = (k: string) => (hero ? ` data-hero="${k}-${p.id}"` : '');
+  return `<span class="av"${h('avatar')}>${esc(p.emoji)}</span> <span class="nm"${h('name')}>${esc(p.name)}${hasFlame(game, id) ? flame() : ''}</span>`;
 }
 
 function deck(): Card[] {
@@ -138,41 +140,64 @@ function freeEmoji(): string {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-// ---------- navigation (FR-901–FR-903) ----------
+// ---------- navigation (FR-901–FR-903, FR-209) ----------
 
-/**
- * Show a screen. `replace` swaps the current screen without adding a Back step
- * (tab switches, redraws, error messages, guess → reveal).
- */
-function go(next: View, replace = false): void {
-  endJoinTransition?.(); // navigating mid-animation clears the stand-ins first
-  if (next.name === 'home' || next.name === 'picker') stack = [];
-  else if (!replace) stack.push(view);
-  view = next;
-  render();
-  window.scrollTo(0, 0);
+/** How a screen change animates (ADR-012). */
+type Nav = {
+  /** Swap the current screen without adding a Back step (tabs, redraws, guess → reveal). */
+  replace?: boolean;
+  /** forward: the old screen leaves to the left; back: to the right. */
+  dir?: Dir;
+  /** false for in-place updates (errors, confirmations, list edits): no motion (NFR-110). */
+  animate?: boolean;
+  aliases?: Record<string, string>;
+  extras?: (c: Ctx) => void;
+  inDelay?: number;
+  onLanded?: () => void;
+};
+
+function show(apply: () => void, o: Nav): void {
+  if (o.animate === false) {
+    endTransition();
+    apply();
+    o.onLanded?.();
+    return;
+  }
+  transition(app, apply, { dir: o.dir ?? 'forward', aliases: o.aliases, extras: o.extras, inDelay: o.inDelay, onLanded: o.onLanded });
+}
+
+/** Show a screen. */
+function go(next: View, o: Nav = {}): void {
+  show(() => {
+    if (next.name === 'home' || next.name === 'picker') stack = [];
+    else if (!o.replace) stack.push(view);
+    view = next;
+    render();
+    window.scrollTo(0, 0);
+  }, o);
 }
 
 function passPhone(): void {
   clearToasts();
   me = null;
-  go({ name: 'picker' });
+  go({ name: 'picker' }, { dir: 'back' });
 }
 
 /** The on-screen Back/Cancel/Skip/Done buttons and the browser's Back all land here. */
 function back(): void {
-  endJoinTransition?.();
   if (howto) return closeHowto(); // FR-901, FR-206
   if (view.name === 'picker') return; // FR-903: stay in the app
   if (view.name === 'home') return passPhone(); // FR-902
-  if (view.name === 'join' && leaveJoinTransition()) return; // FR-208 in reverse
-  let prev = stack.pop();
-  if (prev && prev.name === 'turns') prev = { ...prev, confirmDelete: undefined };
-  if (prev && (prev.name === 'answer' || prev.name === 'reveal') && !findTurn(prev.turnId)) prev = undefined;
-  view = prev ?? (me ? { name: 'home' } : { name: 'picker' });
-  if (view.name === 'home' || view.name === 'picker') stack = [];
-  render();
-  window.scrollTo(0, 0);
+  const o: Nav = { dir: 'back', ...(view.name === 'join' ? joinFieldOut() : {}) }; // FR-208 in reverse
+  show(() => {
+    let prev = stack.pop();
+    if (prev && prev.name === 'turns') prev = { ...prev, confirmDelete: undefined };
+    if (prev && (prev.name === 'answer' || prev.name === 'reveal') && !findTurn(prev.turnId)) prev = undefined;
+    view = prev ?? (me ? { name: 'home' } : { name: 'picker' });
+    if (view.name === 'home' || view.name === 'picker') stack = [];
+    render();
+    window.scrollTo(0, 0);
+  }, o);
 }
 
 // Keep one spare history entry so the browser's Back stays inside the app.
@@ -205,13 +230,10 @@ function cardEnds(left: string, right: string): string {
   return `<div class="ends"><span class="end left">${icons.prev}${esc(left)}</span><span class="end right">${esc(right)}${icons.next}</span></div>`;
 }
 
-/** Staggered entrance order for list items (ADR-011 motion). */
-const enter = (i: number) => `style="--i:${i}"`;
-
-function turnRow(t: Turn, status: string | null, i = 0): string {
+function turnRow(t: Turn, status: string | null): string {
   const side = status === null ? `<span class="go" aria-label="Guess">${icons.next}</span>` : `<span class="row-side">${status}</span>`;
-  return `<button class="row enter" ${enter(i)} data-act="open-turn" data-id="${t.id}">
-    <span class="row-main"><strong>“${esc(t.clue)}”</strong>
+  return `<button class="row" data-act="open-turn" data-id="${t.id}">
+    <span class="row-main"><strong data-hero="clue-${t.id}">“${esc(t.clue)}”</strong>
     <small>${esc(t.left)} ↔ ${esc(t.right)}${t.creatorId === me ? '' : ` · ${who(t.creatorId)}`}</small></span>
     ${side}
   </button>`;
@@ -227,20 +249,25 @@ function inlineField(o: {
   enter: string;
   max: number;
   placeholder?: string;
+  /** Flies to/from a matching element on the next screen (ADR-012). */
+  buttonHero?: string;
+  inputHero?: string;
+  keep?: string;
 }): string {
-  return `<form class="inline-form" data-form="${o.form}" novalidate>
+  const attr = (k: string, v?: string) => (v ? ` ${k}="${v}"` : '');
+  return `<form class="inline-form" data-form="${o.form}"${attr('data-keep', o.keep)} novalidate>
     <label class="field" for="${o.id}">${o.label}</label>
     <div class="field-row">
       <input id="${o.id}" class="text" maxlength="${o.max}" autocomplete="off" autocapitalize="sentences"
-        enterkeyhint="${o.enter}" placeholder="${o.placeholder ?? ''}" value="${esc(o.value)}">
-      <button type="submit" class="primary inset">${o.button}</button>
+        enterkeyhint="${o.enter}" placeholder="${o.placeholder ?? ''}" value="${esc(o.value)}"${attr('data-hero', o.inputHero)}>
+      <button type="submit" class="primary inset"${attr('data-hero', o.buttonHero)}>${o.button}</button>
     </div>
   </form>`;
 }
 
 function layout(hint: string, main: string, footer = ''): string {
   const header = me
-    ? `<header><span class="who">${who(me)}</span>
+    ? `<header><span class="who">${who(me, true)}</span>
        <button class="pass" data-act="pass">${icons.pass}Pass the phone</button></header>`
     : `<header><span class="brand">${logo}HandWave</span></header>`;
   return `${header}${hint ? `<p class="hint">${hint}</p>` : ''}<main>${main}</main>${footer ? `<footer>${footer}</footer>` : ''}`;
@@ -257,8 +284,6 @@ function layout(hint: string, main: string, footer = ''): string {
 const HOWTO_MS = 480;
 let howto: HTMLElement | null = null;
 let howtoClosing = false;
-
-const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 type Box = { top: number; left: number; width: number; height: number };
 
@@ -352,217 +377,48 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// ---------- Join Game transition (FR-208) ----------
-// A stand-in copy of the Join Game button glides into the Join screen's Join
-// button while "Game" slides out. The picker flies off to the left, a white
-// field shrinks from full screen onto the name input, and the Join screen
-// flies in from the right. The real screen is rendered at the start, so the
-// name field can take the cursor (and typing) straight away.
+// ---------- Join Game transition extras (FR-208) ----------
+// The engine flies Join Game into the Join button ("Game" slides out) and the
+// screens past each other. On top of that, a white field shrinks from full
+// screen onto the name input; Back grows it out again.
 
-const GLIDE = 'cubic-bezier(.2, .85, .25, 1)';
-const ACCEL = 'cubic-bezier(.35, 0, .85, .45)'; // leaves right away, speeding up
+const fullBox = () => ({ top: '0px', left: '0px', width: `${window.innerWidth}px`, height: `${window.innerHeight}px` });
+const boxPx = (b: DOMRect) => ({ top: `${b.top}px`, left: `${b.left}px`, width: `${b.width}px`, height: `${b.height}px` });
 
-function joinTransition(): void {
-  const from = app.querySelector<HTMLElement>('[data-act="new-player"]');
-  if (reducedMotion() || !from || typeof document.body.animate !== 'function') {
-    go({ name: 'join', emoji: freeEmoji(), nameText: '' });
-    focusField('name');
-    return;
-  }
-  const start = from.getBoundingClientRect();
-
-  // 1. A frozen copy of the picker that can fly away.
-  const outgoing = app.cloneNode(true) as HTMLElement;
-  outgoing.removeAttribute('id');
-  outgoing.className = 'app-clone';
-  outgoing.setAttribute('aria-hidden', 'true');
-  outgoing.inert = true;
-  outgoing.style.top = `${-window.scrollY}px`;
-  outgoing.querySelector('header')?.setAttribute('style', 'visibility: hidden');
-  outgoing.querySelector<HTMLElement>('[data-act="new-player"]')?.style.setProperty('visibility', 'hidden');
-  document.body.appendChild(outgoing);
-
-  // 2. The real Join screen, cursor in the name field from the start.
-  go({ name: 'join', emoji: freeEmoji(), nameText: '' });
-  const input = document.getElementById('name') as HTMLInputElement;
-  const row = input.closest<HTMLElement>('.field-row')!;
-  const joinBtn = row.querySelector<HTMLElement>('.inset')!;
-  input.focus({ preventScroll: true });
-  row.style.opacity = '0'; // the stand-ins draw it until they land
-  const fieldBox = input.getBoundingClientRect();
-  const end = joinBtn.getBoundingClientRect();
-
-  const anims: Animation[] = [];
-  const fly = (el: Element, keyframes: Keyframe[], o: KeyframeAnimationOptions) => anims.push(el.animate(keyframes, o));
-
-  // Picker content flies off to the left, one after another.
-  const leaving = [...outgoing.querySelectorAll('main > *'), ...outgoing.querySelectorAll('footer > :not([data-act="new-player"])')];
-  leaving.forEach((el, i) =>
-    fly(el, [{ transform: 'none' }, { transform: 'translateX(-120vw) rotate(-8deg)' }], {
-      duration: 260, delay: i * 20, easing: ACCEL, fill: 'forwards',
-    }),
-  );
-
-  // White field: full screen, then snaps down onto the name input.
-  const field = document.createElement('div');
-  field.className = 'field-ghost';
-  document.body.appendChild(field);
-  const r = (b: { top: number; left: number; width: number; height: number }) => ({
-    top: `${b.top}px`, left: `${b.left}px`, width: `${b.width}px`, height: `${b.height}px`,
-  });
-  fly(field, [
-    { ...r({ top: 0, left: 0, width: window.innerWidth, height: window.innerHeight }), borderRadius: '0px', boxShadow: '0 0 0 #1C1838', visibility: 'visible' },
-    { ...r(fieldBox), borderRadius: '16px', boxShadow: '3px 3px 0 #1C1838', visibility: 'visible' },
-  ], { duration: 340, delay: 240, easing: GLIDE, fill: 'forwards' }); // hidden until the picker is mostly gone
-
-  // The Join Game button glides into the Join button; "Game" slides out the right side.
-  const ghost = document.createElement('div');
-  ghost.className = 'join-ghost';
-  ghost.innerHTML = '<span class="j">Join</span><span class="g">&nbsp;Game</span>';
-  document.body.appendChild(ghost);
-  const game = ghost.querySelector<HTMLElement>('.g')!;
-  const gameWidth = game.getBoundingClientRect().width;
-  fly(game, [
-    { width: `${gameWidth}px`, transform: 'none' },
-    { width: '0px', transform: `translateX(${start.width}px)` },
-  ], { duration: 300, easing: ACCEL, fill: 'forwards' });
-  fly(ghost, [
-    { ...r(start), borderRadius: '20px', fontSize: '1.2rem', boxShadow: '5px 5px 0 #1C1838' },
-    { ...r(end), borderRadius: '11px', fontSize: '1.05rem', boxShadow: '0 0 0 #1C1838' },
-  ], { duration: 560, easing: GLIDE, fill: 'forwards' });
-
-  // The rest of the Join screen flies in from the right.
-  const arriving = [...app.querySelectorAll('.hint, main > *:not(.inline-form)'), ...app.querySelectorAll('.inline-form > label'), ...app.querySelectorAll('footer > *')];
-  arriving.forEach((el, i) =>
-    fly(el, [{ transform: 'translateX(110vw) rotate(6deg)' }, { transform: 'none' }], {
-      duration: 420, delay: 260 + i * 35, easing: GLIDE, fill: 'backwards',
-    }),
-  );
-
-  let done = false;
-  const finish = () => {
-    if (done) return;
-    done = true;
-    endJoinTransition = null;
-    row.style.opacity = '';
-    outgoing.remove();
-    field.remove();
-    ghost.remove();
-  };
-  endJoinTransition = () => {
-    anims.forEach((a) => a.cancel()); // arriving elements snap to their real place
-    finish();
-  };
-  Promise.all(anims.map((a) => a.finished)).then(finish, finish);
+function joinFieldIn(c: Ctx): void {
+  const input = c.newRoot.querySelector<HTMLInputElement>('#name');
+  const row = input?.closest('.field-row');
+  if (!input || !row) return;
+  input.focus({ preventScroll: true }); // cursor in the name field from the start
+  const end = input.getBoundingClientRect();
+  const look = getComputedStyle(input); // lands with the focused field's outline and shadow
+  c.hide(row); // the stand-ins draw the field until they land
+  const field = c.layer(Object.assign(document.createElement('div'), { className: 'field-ghost' }));
+  c.animate(field, [
+    { ...fullBox(), borderRadius: '0px', boxShadow: '0px 0px 0px #1C1838', visibility: 'visible' },
+    { ...boxPx(end), borderRadius: look.borderTopLeftRadius, boxShadow: look.boxShadow, visibility: 'visible' },
+  ], { duration: 340, delay: 240, easing: GLIDE, fill: 'forwards' }); // appears once the picker is mostly gone
 }
 
-/**
- * Back from the Join screen: the Join transition in reverse (FR-208).
- * The Join screen flies off to the right, the white field grows from the name
- * input to full screen and clears, the picker flies back in from the left,
- * and the Join button glides back into Join Game as "Game" slides back in.
- * Returns false (so a plain Back happens) when it can't animate.
- */
-function leaveJoinTransition(): boolean {
-  if (reducedMotion() || typeof document.body.animate !== 'function') return false;
+function joinFieldOut(): Nav {
   const input = document.getElementById('name') as HTMLInputElement | null;
-  const row = input?.closest<HTMLElement>('.field-row');
-  const joinBtn = row?.querySelector<HTMLElement>('.inset');
-  if (!input || !row || !joinBtn) return false;
-  const fieldBox = input.getBoundingClientRect();
-  const start = joinBtn.getBoundingClientRect();
+  if (!input) return {};
+  const start = input.getBoundingClientRect();
+  const look = getComputedStyle(input);
+  const from = { radius: look.borderTopLeftRadius, shadow: look.boxShadow };
   input.blur(); // put the keyboard away
-
-  // A frozen copy of the Join screen that can fly away; the stand-ins draw its field.
-  const outgoing = app.cloneNode(true) as HTMLElement;
-  outgoing.removeAttribute('id');
-  outgoing.className = 'app-clone';
-  outgoing.setAttribute('aria-hidden', 'true');
-  outgoing.inert = true;
-  outgoing.style.top = `${-window.scrollY}px`;
-  outgoing.querySelector('header')?.setAttribute('style', 'visibility: hidden');
-  outgoing.querySelector<HTMLElement>('.field-row')?.style.setProperty('visibility', 'hidden');
-  document.body.appendChild(outgoing);
-
-  // The real picker, with its own entrance bounce held back for this one.
-  stack = [];
-  view = { name: 'picker' };
-  app.classList.add('no-enter');
-  render();
-  window.scrollTo(0, 0);
-  const target = app.querySelector<HTMLElement>('[data-act="new-player"]');
-  if (!target) {
-    outgoing.remove();
-    app.classList.remove('no-enter');
-    return true;
-  }
-  target.style.opacity = '0'; // the stand-in button lands here
-  const end = target.getBoundingClientRect();
-
-  const anims: Animation[] = [];
-  const fly = (el: Element, keyframes: Keyframe[], o: KeyframeAnimationOptions) => anims.push(el.animate(keyframes, o));
-  const r = (b: { top: number; left: number; width: number; height: number }) => ({
-    top: `${b.top}px`, left: `${b.left}px`, width: `${b.width}px`, height: `${b.height}px`,
-  });
-
-  // Join screen flies off to the right.
-  const leaving = [...outgoing.querySelectorAll('.hint, main > *:not(.inline-form)'), ...outgoing.querySelectorAll('.inline-form > label'), ...outgoing.querySelectorAll('footer > *')];
-  leaving.forEach((el, i) =>
-    fly(el, [{ transform: 'none' }, { transform: 'translateX(120vw) rotate(8deg)' }], {
-      duration: 260, delay: i * 20, easing: ACCEL, fill: 'forwards',
-    }),
-  );
-
-  // White field grows from the name input to full screen, then clears.
-  const field = document.createElement('div');
-  field.className = 'field-ghost';
-  document.body.appendChild(field);
-  fly(field, [
-    { ...r(fieldBox), borderRadius: '16px', boxShadow: '3px 3px 0 #1C1838', visibility: 'visible' },
-    { ...r({ top: 0, left: 0, width: window.innerWidth, height: window.innerHeight }), borderRadius: '0px', boxShadow: '0 0 0 #1C1838', visibility: 'visible' },
-  ], { duration: 320, easing: GLIDE });
-
-  // The picker flies back in from the left as the field clears.
-  const arriving = [...app.querySelectorAll('main > *'), ...app.querySelectorAll('footer > :not([data-act="new-player"])')];
-  arriving.forEach((el, i) =>
-    fly(el, [{ transform: 'translateX(-120vw) rotate(-8deg)' }, { transform: 'none' }], {
-      duration: 380, delay: 300 + i * 25, easing: GLIDE, fill: 'backwards',
-    }),
-  );
-
-  // The Join button glides back into Join Game; "Game" slides back in from the right.
-  const ghost = document.createElement('div');
-  ghost.className = 'join-ghost';
-  ghost.innerHTML = '<span class="j">Join</span><span class="g">&nbsp;Game</span>';
-  document.body.appendChild(ghost);
-  const game = ghost.querySelector<HTMLElement>('.g')!;
-  const gameWidth = game.getBoundingClientRect().width;
-  fly(game, [
-    { width: '0px', transform: `translateX(${end.width}px)` },
-    { width: `${gameWidth}px`, transform: 'none' },
-  ], { duration: 320, delay: 280, easing: GLIDE, fill: 'both' });
-  fly(ghost, [
-    { ...r(start), borderRadius: '11px', fontSize: '1.05rem', boxShadow: '0 0 0 #1C1838' },
-    { ...r(end), borderRadius: '20px', fontSize: '1.2rem', boxShadow: '5px 5px 0 #1C1838' },
-  ], { duration: 600, easing: GLIDE, fill: 'forwards' });
-
-  let done = false;
-  const finish = () => {
-    if (done) return;
-    done = true;
-    endJoinTransition = null;
-    target.style.opacity = '';
-    app.classList.remove('no-enter');
-    outgoing.remove();
-    field.remove();
-    ghost.remove();
+  return {
+    inDelay: 300, // the picker flies back in as the field clears
+    extras: (c) => {
+      const copy = c.oldRoot.querySelector('.field-row input');
+      if (copy) c.hide(copy);
+      const field = c.layer(Object.assign(document.createElement('div'), { className: 'field-ghost' }));
+      c.animate(field, [
+        { ...boxPx(start), borderRadius: from.radius, boxShadow: from.shadow, visibility: 'visible' },
+        { ...fullBox(), borderRadius: '0px', boxShadow: '0px 0px 0px #1C1838', visibility: 'visible' },
+      ], { duration: 320, easing: GLIDE });
+    },
   };
-  endJoinTransition = () => {
-    anims.forEach((a) => a.cancel());
-    finish();
-  };
-  Promise.all(anims.map((a) => a.finished)).then(finish, finish);
-  return true;
 }
 
 // ---------- screens ----------
@@ -572,31 +428,31 @@ function renderPicker(): string {
   const away = game.players.filter((p) => !p.active);
   const grid = active
     .map(
-      (p, i) =>
-        `<button class="person enter${hasFlame(game, p.id) ? ' hot' : ''}" ${enter(i)} data-act="pick" data-id="${p.id}"><span class="big">${esc(p.emoji)}</span><span class="pname">${esc(p.name)}${hasFlame(game, p.id) ? flame() : ''}</span></button>`,
+      (p) =>
+        `<button class="person${hasFlame(game, p.id) ? ' hot' : ''}" data-act="pick" data-id="${p.id}"><span class="big" data-hero="avatar-${p.id}">${esc(p.emoji)}</span><span class="pname" data-hero="name-${p.id}">${esc(p.name)}${hasFlame(game, p.id) ? flame() : ''}</span></button>`,
     )
     .join('');
   const returning = away.length
     ? `<details class="returning"><summary>Played before? Rejoin</summary>
-       ${away.map((p) => `<button class="row" data-act="rejoin" data-id="${p.id}">${esc(p.emoji)} ${esc(p.name)}</button>`).join('')}
+       ${away.map((p) => `<button class="row rejoin" data-act="rejoin" data-id="${p.id}"><span data-hero="avatar-${p.id}">${esc(p.emoji)}</span><span class="pname" data-hero="name-${p.id}">${esc(p.name)}</span></button>`).join('')}
        </details>`
     : '';
   return layout(
     '',
     `<h1 class="hero">Who are you?</h1>${active.length ? `<div class="people">${grid}</div>` : ''}${returning}`,
     `<button class="howto-btn" data-act="howto" aria-haspopup="dialog">How to play</button>
-     <button class="primary" data-act="new-player">Join Game</button>`,
+     <button class="primary" data-act="new-player" data-hero="join">Join Game</button>`,
   );
 }
 
 function renderJoin(v: Extract<View, { name: 'join' }>): string {
   const emojis = EMOJIS.map(
-    (e) => `<button type="button" class="emoji ${e === v.emoji ? 'on' : ''}" data-act="emoji" data-id="${e}" aria-label="${e}" aria-pressed="${e === v.emoji}">${e}</button>`,
+    (e) => `<button type="button" class="emoji${e === v.emoji ? ' on" data-hero="avatar-new' : ''}" data-act="emoji" data-id="${e}" aria-label="${e}" aria-pressed="${e === v.emoji}">${e}</button>`,
   ).join('');
   return layout(
     'Type your name, pick an emoji if you like, then tap Join.',
     `<h1>Join the game</h1>
-     ${inlineField({ form: 'join', id: 'name', label: 'Your name', value: v.nameText, button: 'Join', enter: 'go', max: 20 })}
+     ${inlineField({ form: 'join', id: 'name', label: 'Your name', value: v.nameText, button: 'Join', enter: 'go', max: 20, buttonHero: 'join', inputHero: 'name-new' })}
      ${v.error ? `<p class="error">${esc(v.error)}</p>` : ''}
      <p class="label">Your emoji</p><div class="emojis">${emojis}</div>`,
     `<button data-act="back">Back</button>`,
@@ -611,13 +467,13 @@ function renderHome(): string {
     .slice(0, 4);
   // FR-202: empty sections are hidden, not explained.
   const toGuess = waiting.length
-    ? `<h2>Clues to guess <span class="count">${waiting.length}</span></h2><div class="list">${waiting.map((t, i) => turnRow(t, null, i)).join('')}</div>`
+    ? `<h2>Clues to guess <span class="count">${waiting.length}</span></h2><div class="list">${waiting.map((t) => turnRow(t, null)).join('')}</div>`
     : '';
   const board = top.length
     ? `<h2>Top scores today</h2><div class="tops">${top
         .map(
           (r, i) =>
-            `<div class="top-card enter${i === 0 ? ' first' : ''}" ${enter(i + waiting.length)}><span>${ORDINALS[i]} · ${who(r.playerId)}</span><strong>${fmt(r.combined)}</strong></div>`,
+            `<div class="top-card${i === 0 ? ' first' : ''}"><span>${ORDINALS[i]} · ${who(r.playerId)}</span><strong>${fmt(r.combined)}</strong></div>`,
         )
         .join('')}</div>`
     : '';
@@ -625,12 +481,12 @@ function renderHome(): string {
     waiting.length ? 'Tap a clue to guess it, or write your own.' : 'Write a clue: you’ll get a secret target to guide the guessers to.',
     `${toGuess}${board}
      <nav class="links">
-       <button data-act="turns">All clues</button>
-       <button data-act="board">Scores</button>
-       <button data-act="cards">Cards</button>
-       <button data-act="menu">More</button>
+       <button data-act="turns" data-hero="title-turns">All clues</button>
+       <button data-act="board" data-hero="title-board">Scores</button>
+       <button data-act="cards" data-hero="title-cards">Cards</button>
+       <button data-act="menu" data-hero="title-menu">More</button>
      </nav>`,
-    `<button class="primary" data-act="create">${icons.plus}Write a clue</button>`,
+    `<button class="primary" data-act="create" data-hero="compose">${icons.plus}Write a clue</button>`,
   );
 }
 
@@ -638,12 +494,12 @@ function renderCreate(v: Extract<View, { name: 'create' }>): string {
   return layout(
     'Press and hold “Peek” to see the target. Write a clue that guides the guessers to it, then send.',
     `${cardEnds(v.card.left, v.card.right)}
-     <div class="dial-host secret" id="dial">${dialSvg({ target: v.target })}</div>
+     <div class="dial-host secret" id="dial" data-keep="dial">${dialSvg({ target: v.target })}</div>
      <div class="row-buttons">
        <button class="peek" data-hold="peek">${icons.peek}Hold to peek</button>
        <button data-act="redraw">${icons.redraw}New card</button>
      </div>
-     ${inlineField({ form: 'send', id: 'clue', label: 'Your clue', value: v.clue, button: 'Send', enter: 'send', max: 60, placeholder: 'A word or phrase' })}
+     ${inlineField({ form: 'send', id: 'clue', label: 'Your clue', value: v.clue, button: 'Send', enter: 'send', max: 60, placeholder: 'A word or phrase', buttonHero: 'compose', keep: 'clue-form' })}
      ${v.error ? `<p class="error">${esc(v.error)}</p>` : ''}
      <p class="tip">Tip: don’t use numbers or directions. Name a thing, person, or idea.</p>`,
     `<button data-act="back">Cancel</button>`,
@@ -654,14 +510,14 @@ function renderAnswer(v: Extract<View, { name: 'answer' }>, t: Turn): string {
   return layout(
     'Drag the needle to where you think the clue belongs, then lock it in.',
     `<p class="by">Clue from ${who(t.creatorId)}</p>
-     <h1 class="clue">“${esc(t.clue)}”</h1>
+     <h1 class="clue" data-hero="clue-${t.id}">“${esc(t.clue)}”</h1>
      ${cardEnds(t.left, t.right)}
-     <div class="dial-host" id="dial">${dialSvg({ needle: v.pos })}</div>
+     <div class="dial-host" id="dial" data-keep="dial-${t.id}">${dialSvg({ needle: v.pos })}</div>
      <div class="row-buttons">
        <button data-act="nudge" data-id="-1" aria-label="Move left">${icons.prev}Nudge</button>
        <button data-act="nudge" data-id="1" aria-label="Move right">Nudge${icons.next}</button>
      </div>`,
-    `<button data-act="back">Skip</button><button class="primary" data-act="lock">Lock in guess</button>`,
+    `<button data-act="back">Skip</button><button class="primary" data-act="lock" data-hero="cta">Lock in guess</button>`,
   );
 }
 
@@ -675,11 +531,13 @@ function renderReveal(v: Extract<View, { name: 'reveal' }>, t: Turn): string {
   // FR-617: name the bonuses so players learn them by seeing them.
   const bonuses = mine
     ? [
-        mine.middle ? `<span class="chip sun enter" style="--i:0">+${mine.middle} middle target</span>` : '',
-        mine.best ? `<span class="chip mint enter" style="--i:1">${crown('')}+${mine.best} best guess</span>` : '',
+        mine.middle ? `<span class="chip sun" style="--i:0">+${mine.middle} middle target</span>` : '',
+        mine.best ? `<span class="chip mint" style="--i:1">${crown('')}+${mine.best} best guess</span>` : '',
       ].filter(Boolean)
     : [];
-  const confetti = v.justAnswered && mine && mine.zone > 0
+  // The celebration plays once, after the screen lands (NFR-110).
+  const party = v.justAnswered && !v.celebrated ? ' data-celebrate' : '';
+  const confetti = party && mine && mine.zone > 0
     ? '<span class="bit b1"></span><span class="bit b2"></span><span class="bit b3"></span><span class="bit b4"></span><span class="bit b5"></span>'
     : '';
   const banner = mine
@@ -690,19 +548,19 @@ function renderReveal(v: Extract<View, { name: 'reveal' }>, t: Turn): string {
       : '';
   const rows = results.length
     ? results
-        .map((r, i) => `<div class="mini enter" ${enter(i + 2)}><span>${who(r.guess.playerId)}${r.best ? crown() : ''}</span><strong>${r.total}</strong></div>`)
+        .map((r) => `<div class="mini"><span>${who(r.guess.playerId)}${r.best ? crown() : ''}</span><strong>${r.total}</strong></div>`)
         .join('')
     : `<p class="empty">No guesses yet. Check back later.</p>`;
   const next = waitingFor(game, me!).length > 0; // FR-408
   return layout(
     v.justAnswered ? 'Here’s the target. Tap Done when you’re ready.' : 'The highlighted zone shows where the target was.',
     `<p class="by">Clue from ${who(t.creatorId)}</p>
-     <h1 class="clue">“${esc(t.clue)}”</h1>
+     <h1 class="clue" data-hero="clue-${t.id}">“${esc(t.clue)}”</h1>
      ${cardEnds(t.left, t.right)}
-     <div class="dial-host${v.justAnswered ? ' celebrate' : ''}" id="dial">${dialSvg({ target: t.target, needle: mine?.guess.position, markers: others })}</div>
-     <div class="${v.justAnswered ? 'celebrate' : ''}">${banner}</div>
+     <div class="dial-host" id="dial" data-keep="dial-${t.id}"${party}>${dialSvg({ target: t.target, needle: mine?.guess.position, markers: others })}</div>
+     <div class="banner"${party}>${banner}</div>
      <h2>Scores</h2><div class="list">${rows}</div>`,
-    `<button ${next ? '' : 'class="primary"'} data-act="back">Done</button>${next ? `<button class="primary" data-act="next-clue">Next clue${icons.next}</button>` : ''}`,
+    `<button ${next ? '' : 'class="primary" data-hero="cta"'} data-act="back">Done</button>${next ? `<button class="primary" data-act="next-clue" data-hero="cta">Next clue${icons.next}</button>` : ''}`,
   );
 }
 
@@ -721,8 +579,8 @@ function renderTurns(v: Extract<View, { name: 'turns' }>): string {
     const mine = guessResults(game, t).find((r) => r.guess.playerId === me)!;
     return `${mine.total} pts`;
   };
-  const row = (t: Turn, i: number) => {
-    if (v.tab !== 'created') return turnRow(t, status(t), i);
+  const row = (t: Turn) => {
+    if (v.tab !== 'created') return turnRow(t, status(t));
     // FR-310: creators can delete their own clues, after confirming.
     const count = game.guesses.filter((g) => g.turnId === t.id).length;
     const confirm =
@@ -732,14 +590,14 @@ function renderTurns(v: Extract<View, { name: 'turns' }>): string {
              <div class="row-buttons"><button data-act="cancel-delete">Keep it</button><button class="danger" data-act="delete-turn" data-id="${t.id}">Delete</button></div>
            </div>`
         : '';
-    return `<div class="row-wrap">${turnRow(t, status(t), i)}
+    return `<div class="row-wrap">${turnRow(t, status(t))}
       <button class="icon-btn" data-act="ask-delete" data-id="${t.id}" aria-label="Delete clue “${esc(t.clue)}”">${icons.trash}</button></div>${confirm}`;
   };
   const tab = (id: Tab, label: string) =>
     `<button class="tab ${v.tab === id ? 'on' : ''}" data-act="tab" data-id="${id}" aria-pressed="${v.tab === id}">${label}</button>`;
   return layout(
     v.tab === 'created' ? 'Tap a clue to see how everyone did, or the trash can to delete it.' : 'Tap a clue to guess it or see how everyone did.',
-    `<h1>Clues</h1><div class="tabs">${tab('waiting', 'To guess')}${tab('answered', 'I guessed')}${tab('created', 'My clues')}</div>
+    `<h1 data-hero="title-turns">All clues</h1><div class="tabs" data-keep="tabs">${tab('waiting', 'To guess')}${tab('answered', 'I guessed')}${tab('created', 'My clues')}</div>
      <div class="list">${list.length ? list.map(row).join('') : '<p class="empty">Nothing here yet.</p>'}</div>`,
     `<button class="primary" data-act="back">Back</button>`,
   );
@@ -753,10 +611,10 @@ function periodTab(id: Period, label: string): string {
 function renderBoard(v: Extract<View, { name: 'board' }>): string {
   const ranked = leaderboard(game, v.period);
   const rows = ranked
-    .map((r, i) => {
+    .map((r) => {
       const rank = r.combined === null ? '–' : ranked.findIndex((x) => x.combined === r.combined) + 1;
       const p = player(r.playerId)!;
-      return `<div class="score-row enter ${p.active ? '' : 'away'}${rank === 1 ? ' first' : ''}" ${enter(i)}>
+      return `<div class="score-row${p.active ? '' : ' away'}${rank === 1 ? ' first' : ''}">
         <span class="rank">${rank}</span>
         <span class="name"><span>${who(r.playerId)}${p.active ? '' : ' <small>(left)</small>'}</span>
           <small>Guessing Score ${fmt(r.guessing)} · Clue Score ${fmt(r.clues)}</small></span>
@@ -766,8 +624,8 @@ function renderBoard(v: Extract<View, { name: 'board' }>): string {
     .join('');
   return layout(
     v.period === 'today' ? 'Today’s scores. Tap All-time for the long run.' : 'Everyone’s scores across every game.',
-    `<h1>Scores</h1>
-     <div class="tabs two">${periodTab('today', 'Today')}${periodTab('all', 'All-time')}</div>
+    `<h1 data-hero="title-board">Scores</h1>
+     <div class="tabs two" data-keep="periods">${periodTab('today', 'Today')}${periodTab('all', 'All-time')}</div>
      <div class="list">${rows || '<p class="empty">No players yet.</p>'}</div>`,
     `<button class="primary" data-act="back">Back</button>`,
   );
@@ -775,11 +633,11 @@ function renderBoard(v: Extract<View, { name: 'board' }>): string {
 
 function renderCards(v: Extract<View, { name: 'cards' }>): string {
   const custom = game.customCards
-    .map((c, i) => `<div class="mini enter" ${enter(i)}><span>${esc(c.left)} ↔ ${esc(c.right)}</span><button class="icon-btn small" data-act="del-card" data-id="${c.id}" aria-label="Delete card ${esc(c.left)} to ${esc(c.right)}">${icons.trash}</button></div>`)
+    .map((c) => `<div class="mini"><span>${esc(c.left)} ↔ ${esc(c.right)}</span><button class="icon-btn small" data-act="del-card" data-id="${c.id}" aria-label="Delete card ${esc(c.left)} to ${esc(c.right)}">${icons.trash}</button></div>`)
     .join('');
   return layout(
     'Add your own spectrum: two opposite ends. It joins the deck right away.',
-    `<h1>Cards</h1>
+    `<h1 data-hero="title-cards">Cards</h1>
      <form class="inline-form" data-form="add-card" novalidate>
        <label class="field" for="left">Left end</label>
        <div class="field-row"><input id="left" class="text" maxlength="30" autocomplete="off" enterkeyhint="next" value="${esc(v.left)}" placeholder="e.g. Tiny"></div>
@@ -801,7 +659,7 @@ function renderMenu(v: Extract<View, { name: 'menu' }>): string {
     : `<button class="wide" data-act="confirm-reset">Start a new game…</button>`;
   return layout(
     'Leaving keeps your scores. You can rejoin any time.',
-    `<h1>More</h1>
+    `<h1 data-hero="title-menu">More</h1>
      <button class="wide" data-act="leave">Leave the game</button>
      ${reset}
      <p class="tip">Everything is saved on this phone only. Clearing your browser data erases the game.</p>`,
@@ -890,7 +748,7 @@ function wire(): void {
 
 function focusField(id: string): void {
   const el = document.getElementById(id) as HTMLInputElement | null;
-  el?.focus();
+  el?.focus({ preventScroll: true });
 }
 
 function startCreate(): View {
@@ -900,9 +758,18 @@ function startCreate(): View {
 function openTurn(id: string, replace = false): void {
   const t = findTurn(id);
   if (!t) return;
-  if (canSeeReveal(game, t, me!)) go({ name: 'reveal', turnId: id, justAnswered: false }, replace);
-  else go({ name: 'answer', turnId: id, pos: 50 }, replace);
+  if (canSeeReveal(game, t, me!)) go({ name: 'reveal', turnId: id, justAnswered: false }, { replace });
+  else go({ name: 'answer', turnId: id, pos: 50 }, { replace });
 }
+
+/** Score badge, zones, stickers and confetti, once the reveal has landed (NFR-110). */
+function celebrate(): void {
+  if (view.name !== 'reveal') return;
+  view.celebrated = true;
+  app.querySelectorAll('[data-celebrate]').forEach((el) => el.classList.add('celebrate'));
+}
+
+const TABS: Tab[] = ['waiting', 'answered', 'created'];
 
 /** Handle one action from a button tap or a form submit. */
 function act(action: string, id: string): void {
@@ -914,7 +781,8 @@ function act(action: string, id: string): void {
     case 'pick': me = id; go({ name: 'home' }); break;
     case 'rejoin': commit(rejoinPlayer(game, id)); me = id; go({ name: 'home' }); break;
     case 'new-player':
-      joinTransition();
+      go({ name: 'join', emoji: freeEmoji(), nameText: '' }, { inDelay: 260, extras: joinFieldIn });
+      focusField('name'); // also covers reduced motion, where no extras run (FR-208)
       break;
     case 'emoji':
       // FR-906: update in place so the keyboard and typed name survive.
@@ -925,6 +793,8 @@ function act(action: string, id: string): void {
           const on = b.dataset.id === id;
           b.classList.toggle('on', on);
           b.setAttribute('aria-pressed', String(on));
+          if (on) b.dataset.hero = 'avatar-new';
+          else delete b.dataset.hero;
         });
         app.querySelector('.error')?.remove();
       }
@@ -934,16 +804,17 @@ function act(action: string, id: string): void {
         const r = joinPlayer(game, v.nameText, v.emoji);
         commit(r.state);
         me = r.playerId;
-        go({ name: 'home' });
+        // The chosen emoji and typed name fly up into the header.
+        go({ name: 'home' }, { aliases: { 'avatar-new': `avatar-${me}`, 'name-new': `name-${me}` } });
       }
       break;
     case 'create': go(startCreate()); break;
-    case 'redraw': if (v.name === 'create') go({ ...v, card: drawCard(deck(), v.card.id), error: undefined }, true); break;
+    case 'redraw': if (v.name === 'create') go({ ...v, card: drawCard(deck(), v.card.id), error: undefined }, { replace: true }); break;
     case 'send':
       if (v.name === 'create') {
         commit(createTurn(game, me!, v.card, v.target, v.clue));
         toast('Clue sent! Others can guess it now.');
-        go({ name: 'home' });
+        go({ name: 'home' }, { dir: 'back' });
       }
       break;
     case 'open-turn': openTurn(id); break;
@@ -961,22 +832,29 @@ function act(action: string, id: string): void {
     case 'lock':
       if (v.name === 'answer') {
         commit(submitGuess(game, v.turnId, me!, v.pos));
-        go({ name: 'reveal', turnId: v.turnId, justAnswered: true }, true);
+        go({ name: 'reveal', turnId: v.turnId, justAnswered: true }, { replace: true, onLanded: celebrate });
       }
       break;
     case 'turns': go({ name: 'turns', tab: 'waiting' }); break;
-    case 'tab': go({ name: 'turns', tab: id as Tab }, true); break;
-    case 'ask-delete': if (v.name === 'turns') go({ ...v, confirmDelete: v.confirmDelete === id ? undefined : id }, true); break;
-    case 'cancel-delete': if (v.name === 'turns') go({ ...v, confirmDelete: undefined }, true); break;
+    case 'tab':
+      if (v.name === 'turns' && v.tab !== id) {
+        const dir: Dir = TABS.indexOf(id as Tab) > TABS.indexOf(v.tab) ? 'forward' : 'back';
+        go({ name: 'turns', tab: id as Tab }, { replace: true, dir });
+      }
+      break;
+    case 'ask-delete': if (v.name === 'turns') go({ ...v, confirmDelete: v.confirmDelete === id ? undefined : id }, { replace: true, animate: false }); break;
+    case 'cancel-delete': if (v.name === 'turns') go({ ...v, confirmDelete: undefined }, { replace: true, animate: false }); break;
     case 'delete-turn':
       if (v.name === 'turns') {
         commit(deleteTurn(game, id, me!));
         toast('Clue deleted.');
-        go({ ...v, confirmDelete: undefined }, true);
+        go({ ...v, confirmDelete: undefined }, { replace: true, animate: false });
       }
       break;
     case 'board': go({ name: 'board', period: 'today' }); break;
-    case 'period': go({ name: 'board', period: id as Period }, true); break;
+    case 'period':
+      if (v.name === 'board' && v.period !== id) go({ name: 'board', period: id as Period }, { replace: true, dir: id === 'all' ? 'forward' : 'back' });
+      break;
     case 'cards': go({ name: 'cards', left: '', right: '' }); break;
     case 'add-card':
       if (v.name === 'cards') {
@@ -987,16 +865,16 @@ function act(action: string, id: string): void {
         }
         commit(addCustomCard(game, v.left, v.right));
         toast('Card added to the deck.');
-        go({ name: 'cards', left: '', right: '' }, true);
+        go({ name: 'cards', left: '', right: '' }, { replace: true, animate: false });
         focusField('left');
       }
       break;
     case 'del-card': commit(deleteCustomCard(game, id)); render(); break;
     case 'menu': go({ name: 'menu', confirmReset: false }); break;
-    case 'confirm-reset': go({ name: 'menu', confirmReset: true }, true); break;
-    case 'cancel-reset': go({ name: 'menu', confirmReset: false }, true); break;
-    case 'reset': commit(newGame(game)); toast('New game started.'); go({ name: 'home' }); break;
-    case 'leave': commit(leavePlayer(game, me!)); me = null; toast('You left. Your scores are saved.'); go({ name: 'picker' }); break;
+    case 'confirm-reset': go({ name: 'menu', confirmReset: true }, { replace: true, animate: false }); break;
+    case 'cancel-reset': go({ name: 'menu', confirmReset: false }, { replace: true, animate: false }); break;
+    case 'reset': commit(newGame(game)); toast('New game started.'); go({ name: 'home' }, { dir: 'back' }); break;
+    case 'leave': commit(leavePlayer(game, me!)); me = null; toast('You left. Your scores are saved.'); go({ name: 'picker' }, { dir: 'back' }); break;
   }
 }
 
@@ -1007,7 +885,7 @@ function run(action: string, id: string): void {
     act(action, id);
   } catch (err) {
     if (err instanceof RuleError && (v.name === 'join' || v.name === 'create' || v.name === 'cards')) {
-      go({ ...v, error: err.message } as View, true);
+      go({ ...v, error: err.message } as View, { replace: true, animate: false }); // in place, no motion
     } else if (err instanceof RuleError) {
       toast(err.message);
     } else {
@@ -1028,4 +906,5 @@ app.addEventListener('submit', (e) => {
   if (form.dataset.form) run(form.dataset.form, '');
 });
 
+setUpPress();
 render();

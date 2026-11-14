@@ -14,7 +14,8 @@ Each record captures one decision: the context, what was decided, and the conseq
 | [ADR-008](ADR-008-no-ai-at-runtime.md) | Claude builds the game; no AI inside the game | Accepted |
 | [ADR-009](ADR-009-public-repository.md) | Public repository (amends ADR-004) | Accepted |
 | [ADR-010](ADR-010-scoring-v2.md) | Recent-weighted scores, bonuses, Today and All-time (supersedes ADR-006) | Accepted |
-| [ADR-011](ADR-011-pop-visual-design.md) | "Pop" visual design: tokens, type, shapes, icons, motion | Accepted |
+| [ADR-011](ADR-011-pop-visual-design.md) | "Pop" visual design: tokens, type, shapes, icons, motion | Accepted (motion and button shape amended by ADR-012) |
+| [ADR-012](ADR-012-screen-transitions.md) | Screen transitions (navigation map) and button press feel | Accepted |
 
 Template for new records:
 
