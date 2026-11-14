@@ -493,8 +493,8 @@ function renderHome(): string {
 function renderCreate(v: Extract<View, { name: 'create' }>): string {
   return layout(
     'Press and hold “Peek” to see the target. Write a clue that guides the guessers to it, then send.',
-    `${cardEnds(v.card.left, v.card.right)}
-     <div class="dial-host secret" id="dial" data-keep="dial">${dialSvg({ target: v.target })}</div>
+    `<div class="card-face">${cardEnds(v.card.left, v.card.right)}
+     <div class="dial-host secret" id="dial">${dialSvg({ target: v.target })}</div></div>
      <div class="row-buttons">
        <button class="peek" data-hold="peek">${icons.peek}Hold to peek</button>
        <button data-act="redraw">${icons.redraw}New card</button>
