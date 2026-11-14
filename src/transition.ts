@@ -332,7 +332,12 @@ export function transition(app: HTMLElement, apply: () => void, opts: Transition
   requestAnimationFrame(() => requestAnimationFrame(() => springing.forEach((el) => el.classList.remove('pressed'))));
 
   // 2. The incoming screen, for real.
-  apply();
+  try {
+    apply();
+  } catch (err) {
+    clone.remove(); // never leave the frozen copy on screen
+    throw err;
+  }
   const newUnits = measureUnits(app);
   const newHeroes = measureHeroes(app);
 
@@ -349,6 +354,7 @@ export function transition(app: HTMLElement, apply: () => void, opts: Transition
       return a;
     },
     layer(el) {
+      el.setAttribute('aria-hidden', 'true'); // screen readers read the real screen, not stand-ins
       document.body.appendChild(el);
       layers.push(el);
       return el;

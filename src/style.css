@@ -327,7 +327,7 @@ button.inset {
   position: fixed;
   left: 50%;
   top: calc(14px + env(safe-area-inset-top));
-  z-index: 10;
+  z-index: 25; /* above screen transitions and How to play */
   transform: translateX(-50%);
   max-width: 90vw;
   padding: 12px 18px;
