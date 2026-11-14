@@ -282,6 +282,8 @@ button.inset {
 .end.left { background: var(--sky); }
 .end.right { background: var(--peach); text-align: right; }
 
+/* The spectrum ends and dial travel together as one card (ADR-014). */
+.card-face { display: flex; flex-direction: column; gap: 12px; }
 .dial-host { width: 100%; touch-action: none; user-select: none; -webkit-user-select: none; }
 .dial { width: 100%; height: auto; display: block; overflow: visible; }
 .dial .face { fill: var(--surface); stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
