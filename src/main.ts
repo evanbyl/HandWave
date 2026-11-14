@@ -82,6 +82,8 @@ let me: string | null = null;
 let view: View = { name: 'picker' };
 /** Screens to return to on Back (FR-901). Cleared on home and picker. */
 let stack: View[] = [];
+/** Ends a running Join transition at once, when the player navigates mid-animation (FR-208). */
+let endJoinTransition: (() => void) | null = null;
 
 // ---------- helpers ----------
 
@@ -143,6 +145,7 @@ function freeEmoji(): string {
  * (tab switches, redraws, error messages, guess → reveal).
  */
 function go(next: View, replace = false): void {
+  endJoinTransition?.(); // navigating mid-animation clears the stand-ins first
   if (next.name === 'home' || next.name === 'picker') stack = [];
   else if (!replace) stack.push(view);
   view = next;
@@ -158,6 +161,7 @@ function passPhone(): void {
 
 /** The on-screen Back/Cancel/Skip/Done buttons and the browser's Back all land here. */
 function back(): void {
+  endJoinTransition?.();
   if (howto) return closeHowto(); // FR-901, FR-206
   if (view.name === 'picker') return; // FR-903: stay in the app
   if (view.name === 'home') return passPhone(); // FR-902
@@ -347,6 +351,110 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// ---------- Join Game transition (FR-208) ----------
+// A stand-in copy of the Join Game button glides into the Join screen's Join
+// button while "Game" slides out. The picker flies off to the left, a white
+// field shrinks from full screen onto the name input, and the Join screen
+// flies in from the right. The real screen is rendered at the start, so the
+// name field can take the cursor (and typing) straight away.
+
+const GLIDE = 'cubic-bezier(.2, .85, .25, 1)';
+const ACCEL = 'cubic-bezier(.35, 0, .85, .45)'; // leaves right away, speeding up
+
+function joinTransition(): void {
+  const from = app.querySelector<HTMLElement>('[data-act="new-player"]');
+  if (reducedMotion() || !from || typeof document.body.animate !== 'function') {
+    go({ name: 'join', emoji: freeEmoji(), nameText: '' });
+    focusField('name');
+    return;
+  }
+  const start = from.getBoundingClientRect();
+
+  // 1. A frozen copy of the picker that can fly away.
+  const outgoing = app.cloneNode(true) as HTMLElement;
+  outgoing.removeAttribute('id');
+  outgoing.className = 'app-clone';
+  outgoing.setAttribute('aria-hidden', 'true');
+  outgoing.inert = true;
+  outgoing.style.top = `${-window.scrollY}px`;
+  outgoing.querySelector('header')?.setAttribute('style', 'visibility: hidden');
+  outgoing.querySelector<HTMLElement>('[data-act="new-player"]')?.style.setProperty('visibility', 'hidden');
+  document.body.appendChild(outgoing);
+
+  // 2. The real Join screen, cursor in the name field from the start.
+  go({ name: 'join', emoji: freeEmoji(), nameText: '' });
+  const input = document.getElementById('name') as HTMLInputElement;
+  const row = input.closest<HTMLElement>('.field-row')!;
+  const joinBtn = row.querySelector<HTMLElement>('.inset')!;
+  input.focus({ preventScroll: true });
+  row.style.opacity = '0'; // the stand-ins draw it until they land
+  const fieldBox = input.getBoundingClientRect();
+  const end = joinBtn.getBoundingClientRect();
+
+  const anims: Animation[] = [];
+  const fly = (el: Element, keyframes: Keyframe[], o: KeyframeAnimationOptions) => anims.push(el.animate(keyframes, o));
+
+  // Picker content flies off to the left, one after another.
+  const leaving = [...outgoing.querySelectorAll('main > *'), ...outgoing.querySelectorAll('footer > :not([data-act="new-player"])')];
+  leaving.forEach((el, i) =>
+    fly(el, [{ transform: 'none' }, { transform: 'translateX(-120vw) rotate(-8deg)' }], {
+      duration: 260, delay: i * 20, easing: ACCEL, fill: 'forwards',
+    }),
+  );
+
+  // White field: full screen, then snaps down onto the name input.
+  const field = document.createElement('div');
+  field.className = 'field-ghost';
+  document.body.appendChild(field);
+  const r = (b: { top: number; left: number; width: number; height: number }) => ({
+    top: `${b.top}px`, left: `${b.left}px`, width: `${b.width}px`, height: `${b.height}px`,
+  });
+  fly(field, [
+    { ...r({ top: 0, left: 0, width: window.innerWidth, height: window.innerHeight }), borderRadius: '0px', boxShadow: '0 0 0 #1C1838', visibility: 'visible' },
+    { ...r(fieldBox), borderRadius: '16px', boxShadow: '3px 3px 0 #1C1838', visibility: 'visible' },
+  ], { duration: 340, delay: 240, easing: GLIDE, fill: 'forwards' }); // hidden until the picker is mostly gone
+
+  // The Join Game button glides into the Join button; "Game" slides out the right side.
+  const ghost = document.createElement('div');
+  ghost.className = 'join-ghost';
+  ghost.innerHTML = '<span class="j">Join</span><span class="g">&nbsp;Game</span>';
+  document.body.appendChild(ghost);
+  const game = ghost.querySelector<HTMLElement>('.g')!;
+  const gameWidth = game.getBoundingClientRect().width;
+  fly(game, [
+    { width: `${gameWidth}px`, transform: 'none' },
+    { width: '0px', transform: `translateX(${start.width}px)` },
+  ], { duration: 300, easing: ACCEL, fill: 'forwards' });
+  fly(ghost, [
+    { ...r(start), borderRadius: '20px', fontSize: '1.2rem', boxShadow: '5px 5px 0 #1C1838' },
+    { ...r(end), borderRadius: '11px', fontSize: '1.05rem', boxShadow: '0 0 0 #1C1838' },
+  ], { duration: 560, easing: GLIDE, fill: 'forwards' });
+
+  // The rest of the Join screen flies in from the right.
+  const arriving = [...app.querySelectorAll('.hint, main > *:not(.inline-form)'), ...app.querySelectorAll('.inline-form > label'), ...app.querySelectorAll('footer > *')];
+  arriving.forEach((el, i) =>
+    fly(el, [{ transform: 'translateX(110vw) rotate(6deg)' }, { transform: 'none' }], {
+      duration: 420, delay: 260 + i * 35, easing: GLIDE, fill: 'backwards',
+    }),
+  );
+
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    endJoinTransition = null;
+    row.style.opacity = '';
+    outgoing.remove();
+    field.remove();
+    ghost.remove();
+  };
+  endJoinTransition = () => {
+    anims.forEach((a) => a.cancel()); // arriving elements snap to their real place
+    finish();
+  };
+  Promise.all(anims.map((a) => a.finished)).then(finish, finish);
+}
+
 // ---------- screens ----------
 
 function renderPicker(): string {
@@ -365,8 +473,7 @@ function renderPicker(): string {
     : '';
   return layout(
     '',
-    `<span class="deco sun" aria-hidden="true"></span><span class="deco mint" aria-hidden="true"></span>
-     <h1 class="hero">Who are you?</h1>${active.length ? `<div class="people">${grid}</div>` : ''}${returning}`,
+    `<h1 class="hero">Who are you?</h1>${active.length ? `<div class="people">${grid}</div>` : ''}${returning}`,
     `<button class="howto-btn" data-act="howto" aria-haspopup="dialog">How to play</button>
      <button class="primary" data-act="new-player">Join Game</button>`,
   );
@@ -697,8 +804,7 @@ function act(action: string, id: string): void {
     case 'pick': me = id; go({ name: 'home' }); break;
     case 'rejoin': commit(rejoinPlayer(game, id)); me = id; go({ name: 'home' }); break;
     case 'new-player':
-      go({ name: 'join', emoji: freeEmoji(), nameText: '' });
-      focusField('name');
+      joinTransition();
       break;
     case 'emoji':
       // FR-906: update in place so the keyboard and typed name survive.

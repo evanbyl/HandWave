@@ -35,6 +35,7 @@ html, body {
 
 #app {
   position: relative;
+  z-index: 1;
   max-width: 520px;
   margin: 0 auto;
   min-height: 100dvh;
@@ -123,10 +124,11 @@ footer button { flex: 1; max-width: 300px; min-height: 60px; border-radius: 20px
 
 /* ---------- picker ---------- */
 
-.deco { position: absolute; z-index: 0; pointer-events: none; }
+/* Decorative shapes that stay put behind every screen (ADR-011, NFR-109). */
+.backdrop { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.deco { position: absolute; }
 .deco.sun { width: 220px; height: 220px; right: -100px; top: -150px; border-radius: 50%; background: var(--sun); }
 .deco.mint { width: 90px; height: 90px; left: -64px; top: 360px; border-radius: 22px; background: var(--mint); transform: rotate(18deg); }
-main > :not(.deco) { position: relative; z-index: 1; }
 
 .people { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 12px; }
 .person {
@@ -407,6 +409,48 @@ footer:has(.howto-btn) button { flex: none; width: 100%; }
 .howto-body .step p { margin: 0; font-size: 1.08rem; line-height: 1.5; }
 .howto-body .num { flex-basis: 36px; height: 36px; font-size: 1.05rem; }
 body.howto-open { overflow: hidden; }
+
+/* ---------- Join Game transition (FR-208) ---------- */
+
+.app-clone {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 15;
+  max-width: 520px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 0 20px;
+  pointer-events: none;
+}
+.app-clone .enter { animation: none; }
+.field-ghost {
+  position: fixed;
+  z-index: 16;
+  background: var(--surface);
+  border: var(--line);
+  pointer-events: none;
+  visibility: hidden;
+}
+.join-ghost {
+  position: fixed;
+  z-index: 17;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
+  background: var(--violet);
+  color: #FFFFFF;
+  border: var(--line);
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  pointer-events: none;
+}
+.join-ghost .g { display: inline-block; overflow: visible; }
 
 /* ---------- motion (ADR-011) ---------- */
 
