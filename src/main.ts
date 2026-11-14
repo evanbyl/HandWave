@@ -298,8 +298,8 @@ function openHowto(): void {
         and a secret target on it. Write a clue that guides the guessers to the target.</p></div>
       <div class="step"><span class="num mint">2</span><p><strong>Guess.</strong> Drag the needle to where you think someone
         else’s clue belongs, then see the target and how everyone scored.</p></div>
-      <div class="step"><span class="num peach">3</span><p><strong>Pass the phone.</strong> Play as much as you like first.
-        No talking needed, and no fixed turn order. Join or leave anytime.</p></div>
+      <div class="step"><span class="num peach">3</span><p><strong>Pass the phone.</strong> Play as much as you like, and join or leave anytime.
+        No talking needed, and no fixed turn order.</p></div>
     </div>
     </div>`;
   setBox(panel, btn.getBoundingClientRect());
