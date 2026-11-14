@@ -6,7 +6,8 @@ export default defineConfig({
   base: '/HandWave/',
   plugins: [
     VitePWA({
-      registerType: 'autoUpdate',
+      // Updates are applied at the next hand-off, not mid-screen (NFR-405).
+      registerType: 'prompt',
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'HandWave',
